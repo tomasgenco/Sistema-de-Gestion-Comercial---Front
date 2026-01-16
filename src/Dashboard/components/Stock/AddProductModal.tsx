@@ -32,7 +32,6 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                 barcode: barcode.trim(),
                 price: parseFloat(price),
                 stock: stockNum,
-                category: 'General', // Categoría por defecto
                 status: stockNum === 0 ? 'out' : stockNum <= 5 ? 'low' : 'available'
             };
             onAdd(newProduct);

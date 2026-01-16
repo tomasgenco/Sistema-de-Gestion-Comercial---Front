@@ -15,4 +15,10 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    // Minificación automática (ofusca y comprime el código)
+    minify: true,
+    // Deshabilita source maps en producción (muy importante para seguridad)
+    sourcemap: false,
+  },
 })

@@ -1,4 +1,7 @@
 export { default as ProveedoresContent } from './ProveedoresContent';
-
-// TODO: Agregar más componentes del módulo Proveedores aquí
-
+export { default as ProviderCard } from './ProviderCard';
+export { default as ProveedoresStats } from './ProveedoresStats';
+export { default as AddProviderModal } from './AddProviderModal';
+export { default as EditProviderModal } from './EditProviderModal';
+export { default as PurchaseModal } from './PurchaseModal';
+export { default as PurchaseHistoryTable } from './PurchaseHistoryTable';

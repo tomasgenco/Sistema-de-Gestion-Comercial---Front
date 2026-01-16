@@ -2,6 +2,47 @@ import { Box, Typography } from '@mui/material';
 import DashboardHeader from './DashboardHeader';
 import StatsGrid from './StatsGrid';
 import RecentSalesTable from './RecentSalesTable';
+import SalesByHourChart from '../Ventas/SalesByHourChart';
+import RevenueByPaymentMethodChart from '../Ventas/RevenueByPaymentMethodChart';
+
+// Datos de ejemplo de ventas para los gráficos
+const mockSales = [
+    {
+        id: 'V-001',
+        date: '2026-01-15T10:30:00',
+        paymentMethod: 'efectivo' as const,
+        total: 1335000,
+        items: []
+    },
+    {
+        id: 'V-002',
+        date: '2026-01-15T11:45:00',
+        paymentMethod: 'mercadopago' as const,
+        total: 650000,
+        items: []
+    },
+    {
+        id: 'V-003',
+        date: '2026-01-15T14:20:00',
+        paymentMethod: 'tarjetacredito' as const,
+        total: 240000,
+        items: []
+    },
+    {
+        id: 'V-004',
+        date: '2026-01-15T16:10:00',
+        paymentMethod: 'tarjetadebito' as const,
+        total: 450000,
+        items: []
+    },
+    {
+        id: 'V-005',
+        date: '2026-01-15T09:15:00',
+        paymentMethod: 'efectivo' as const,
+        total: 320000,
+        items: []
+    }
+];
 
 const PrincipalContent = () => {
     return (
@@ -12,6 +53,15 @@ const PrincipalContent = () => {
             />
 
             <StatsGrid />
+
+            {/* Gráficos de Análisis */}
+            <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a', mb: 3, mt: 5 }}>
+                Análisis de Ventas
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' }, gap: 3, mb: 5 }}>
+                <SalesByHourChart sales={mockSales} />
+                <RevenueByPaymentMethodChart sales={mockSales} />
+            </Box>
 
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a', mb: 3 }}>
                 Últimas 5 Ventas

@@ -15,21 +15,21 @@ const getProductStatus = (stock: number): 'available' | 'low' | 'out' => {
 
 // Datos de ejemplo (mock data)
 const initialProducts: Product[] = [
-    { id: 'P-001', name: 'Laptop Dell XPS 15', barcode: '7891234567890', price: 1250000, stock: 15, category: 'Electrónica', status: 'available' },
-    { id: 'P-002', name: 'Mouse Logitech MX Master', barcode: '7891234567891', price: 85000, stock: 45, category: 'Accesorios', status: 'available' },
-    { id: 'P-003', name: 'Teclado Mecánico RGB', barcode: '7891234567892', price: 120000, stock: 3, category: 'Accesorios', status: 'low' },
-    { id: 'P-004', name: 'Monitor Samsung 27"', barcode: '7891234567893', price: 350000, stock: 0, category: 'Electrónica', status: 'out' },
-    { id: 'P-005', name: 'Webcam Logitech C920', barcode: '7891234567894', price: 95000, stock: 22, category: 'Accesorios', status: 'available' },
-    { id: 'P-006', name: 'Auriculares Sony WH-1000XM4', barcode: '7891234567895', price: 280000, stock: 12, category: 'Audio', status: 'available' },
-    { id: 'P-007', name: 'SSD Samsung 1TB', barcode: '7891234567896', price: 125000, stock: 5, category: 'Almacenamiento', status: 'low' },
-    { id: 'P-008', name: 'RAM Corsair 16GB', barcode: '7891234567897', price: 75000, stock: 30, category: 'Componentes', status: 'available' },
-    { id: 'P-009', name: 'Procesador Intel i7', barcode: '7891234567898', price: 450000, stock: 8, category: 'Componentes', status: 'available' },
-    { id: 'P-010', name: 'Placa de Video RTX 3060', barcode: '7891234567899', price: 650000, stock: 4, category: 'Componentes', status: 'low' },
-    { id: 'P-011', name: 'Motherboard ASUS ROG', barcode: '7891234567900', price: 320000, stock: 6, category: 'Componentes', status: 'available' },
-    { id: 'P-012', name: 'Fuente Corsair 750W', barcode: '7891234567901', price: 180000, stock: 12, category: 'Componentes', status: 'available' },
-    { id: 'P-013', name: 'Gabinete NZXT H510', barcode: '7891234567902', price: 95000, stock: 2, category: 'Componentes', status: 'low' },
-    { id: 'P-014', name: 'Cooler Noctua NH-D15', barcode: '7891234567903', price: 125000, stock: 18, category: 'Componentes', status: 'available' },
-    { id: 'P-015', name: 'Pasta Térmica Arctic MX-4', barcode: '7891234567904', price: 8500, stock: 50, category: 'Accesorios', status: 'available' },
+    { id: 'P-001', name: 'Laptop Dell XPS 15', barcode: '7891234567890', price: 1250000, stock: 15, status: 'available' },
+    { id: 'P-002', name: 'Mouse Logitech MX Master', barcode: '7891234567891', price: 85000, stock: 45, status: 'available' },
+    { id: 'P-003', name: 'Teclado Mecánico RGB', barcode: '7891234567892', price: 120000, stock: 3, status: 'low' },
+    { id: 'P-004', name: 'Monitor Samsung 27"', barcode: '7891234567893', price: 350000, stock: 0, status: 'out' },
+    { id: 'P-005', name: 'Webcam Logitech C920', barcode: '7891234567894', price: 95000, stock: 22, status: 'available' },
+    { id: 'P-006', name: 'Auriculares Sony WH-1000XM4', barcode: '7891234567895', price: 280000, stock: 12, status: 'available' },
+    { id: 'P-007', name: 'SSD Samsung 1TB', barcode: '7891234567896', price: 125000, stock: 5, status: 'low' },
+    { id: 'P-008', name: 'RAM Corsair 16GB', barcode: '7891234567897', price: 75000, stock: 30, status: 'available' },
+    { id: 'P-009', name: 'Procesador Intel i7', barcode: '7891234567898', price: 450000, stock: 8, status: 'available' },
+    { id: 'P-010', name: 'Placa de Video RTX 3060', barcode: '7891234567899', price: 650000, stock: 4, status: 'low' },
+    { id: 'P-011', name: 'Motherboard ASUS ROG', barcode: '7891234567900', price: 320000, stock: 6, status: 'available' },
+    { id: 'P-012', name: 'Fuente Corsair 750W', barcode: '7891234567901', price: 180000, stock: 12, status: 'available' },
+    { id: 'P-013', name: 'Gabinete NZXT H510', barcode: '7891234567902', price: 95000, stock: 2, status: 'low' },
+    { id: 'P-014', name: 'Cooler Noctua NH-D15', barcode: '7891234567903', price: 125000, stock: 18, status: 'available' },
+    { id: 'P-015', name: 'Pasta Térmica Arctic MX-4', barcode: '7891234567904', price: 8500, stock: 50, status: 'available' },
 ];
 
 
@@ -71,7 +71,6 @@ const StockContent = () => {
     const totalProducts = products.length;
     const lowStockProducts = products.filter(p => p.status === 'low' || p.status === 'out').length;
     const totalValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
-    const categories = new Set(products.map(p => p.category)).size;
 
     // Resetear a página 1 cuando cambian los filtros
     useEffect(() => {
@@ -163,7 +162,6 @@ const StockContent = () => {
                 totalProducts={totalProducts}
                 lowStockProducts={lowStockProducts}
                 totalValue={totalValue}
-                categories={categories}
             />
 
             {/* Filters and Search */}

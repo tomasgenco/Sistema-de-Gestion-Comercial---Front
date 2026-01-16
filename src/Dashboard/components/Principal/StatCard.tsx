@@ -1,9 +1,10 @@
 import { Card, CardContent, Typography, Box } from '@mui/material';
 import { MdTrendingUp, MdTrendingDown } from 'react-icons/md';
+import type { ReactNode } from 'react';
 
 interface StatCardProps {
     title: string;
-    value: string;
+    value: string | ReactNode;
     trend?: 'up' | 'down';
     trendValue?: string;
     type?: 'positive' | 'negative' | 'neutral';

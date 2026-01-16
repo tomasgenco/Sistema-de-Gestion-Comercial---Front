@@ -18,7 +18,6 @@ export interface Product {
     barcode: string;
     price: number;
     stock: number;
-    category: string;
     status: 'available' | 'low' | 'out';
 }
 
