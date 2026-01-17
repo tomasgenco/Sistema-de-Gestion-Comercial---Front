@@ -78,8 +78,11 @@ const StockContent = () => {
                         `/producto/search?q=${encodeURIComponent(activeSearch)}`
                     );
 
+                    // Validar que response.data sea un array
+                    const dataArray = Array.isArray(response.data) ? response.data : [];
+
                     // Transformar los datos del backend al formato del frontend
-                    const productosFormateados: Product[] = (response.data || []).map(producto => ({
+                    let productosFormateados: Product[] = dataArray.map(producto => ({
                         id: String(producto.id),
                         name: producto.nombre,
                         barcode: producto.sku,
@@ -88,11 +91,49 @@ const StockContent = () => {
                         status: getProductStatus(producto.stock)
                     }));
 
-                    setProducts(productosFormateados);
-                    setTotalPages(1); // Solo una página con todos los resultados
+                    // Aplicar filtro de estado si no es 'all'
+                    if (statusFilter !== 'all') {
+                        productosFormateados = productosFormateados.filter(p => p.status === statusFilter);
+                    }
+
+                    // Paginar en el frontend
+                    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                    const endIndex = startIndex + ITEMS_PER_PAGE;
+                    const paginatedProducts = productosFormateados.slice(startIndex, endIndex);
+
+                    setProducts(paginatedProducts);
+                    setTotalPages(Math.ceil(productosFormateados.length / ITEMS_PER_PAGE));
+                    setTotalElements(productosFormateados.length);
+                } else if (statusFilter !== 'all') {
+                    // Si hay filtro de estado activo, obtener más productos para filtrar correctamente
+                    // Usamos size=100 para obtener suficientes productos (ajustar según el tamaño de tu catálogo)
+                    const response = await http.get<PaginatedResponse>(
+                        `/producto/paginated?page=1&size=100`
+                    );
+
+                    // Transformar y filtrar
+                    let productosFormateados: Product[] = (response.data.content || []).map(producto => ({
+                        id: String(producto.id),
+                        name: producto.nombre,
+                        barcode: producto.sku,
+                        price: producto.precio,
+                        stock: producto.stock,
+                        status: getProductStatus(producto.stock)
+                    }));
+
+                    // Aplicar filtro de estado
+                    productosFormateados = productosFormateados.filter(p => p.status === statusFilter);
+
+                    // Paginar en el frontend
+                    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                    const endIndex = startIndex + ITEMS_PER_PAGE;
+                    const paginatedProducts = productosFormateados.slice(startIndex, endIndex);
+
+                    setProducts(paginatedProducts);
+                    setTotalPages(Math.ceil(productosFormateados.length / ITEMS_PER_PAGE));
                     setTotalElements(productosFormateados.length);
                 } else {
-                    // Si no hay búsqueda, usar endpoint paginado normal
+                    // Si no hay búsqueda ni filtro, usar endpoint paginado normal del backend
                     const response = await http.get<PaginatedResponse>(
                         `/producto/paginated?page=${currentPage}&size=${ITEMS_PER_PAGE}`
                     );
@@ -120,7 +161,7 @@ const StockContent = () => {
         };
 
         fetchProductos();
-    }, [currentPage, activeSearch]); // Se ejecuta cuando cambia la página o la búsqueda activa
+    }, [currentPage, activeSearch, statusFilter]); // Agregar statusFilter a las dependencias
 
     // Cargar estadísticas desde el backend
     useEffect(() => {
@@ -341,6 +382,8 @@ const StockContent = () => {
                                 onChange={handlePageChange}
                                 color="primary"
                                 size="large"
+                                showFirstButton
+                                showLastButton
                                 sx={{
                                     '& .MuiPaginationItem-root': {
                                         fontWeight: 600,

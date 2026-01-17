@@ -65,7 +65,27 @@ const RecentSalesTable = () => {
     };
 
 
-    // Función para obtener el color del chip según el método de pago
+    // Función para normalizar el nombre del método de pago
+    const getPaymentMethodLabel = (method: string) => {
+        // Normalizar a minúsculas y quitar espacios/guiones bajos
+        const methodLower = method.toLowerCase().replace(/[_\s]+/g, '');
+
+        if (methodLower.includes('efectivo')) {
+            return 'Efectivo';
+        } else if (methodLower.includes('mercadopago')) {
+            return 'Mercado Pago';
+        } else if (methodLower.includes('cuentadni')) {
+            return 'Cuenta DNI';
+        } else if (methodLower.includes('tarjetacredito') || (methodLower.includes('tarjeta') && methodLower.includes('credito'))) {
+            return 'Tarjeta Crédito';
+        } else if (methodLower.includes('tarjetadebito') || (methodLower.includes('tarjeta') && methodLower.includes('debito'))) {
+            return 'Tarjeta Débito';
+        } else if (methodLower.includes('transferencia')) {
+            return 'Transferencia';
+        }
+        return method; // Fallback al valor original si no coincide
+    };
+
     // Función para obtener el color del chip según el método de pago
     const getPaymentMethodColor = (method: string) => {
         // Normalizar a minúsculas y quitar espacios para consistencia
@@ -133,7 +153,7 @@ const RecentSalesTable = () => {
                                         <TableCell sx={{ fontWeight: 600 }}>${venta.total.toLocaleString('es-AR')}</TableCell>
                                         <TableCell>
                                             <Chip
-                                                label={venta.metodoPago}
+                                                label={getPaymentMethodLabel(venta.metodoPago)}
                                                 size="small"
                                                 sx={{
                                                     ...paymentColors,

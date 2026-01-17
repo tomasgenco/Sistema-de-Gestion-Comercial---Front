@@ -3,6 +3,13 @@ import { useState, useEffect } from 'react';
 import StatCard from './StatCard';
 import { http } from '../../../shared/api/http';
 
+// Tipo para la respuesta de estadísticas del backend
+interface VentasStatsResponse {
+    ventasDelMes: number;
+    ingresosTotalesDelDia: number;
+    egresosDelDia: number;
+}
+
 const StatsGrid = () => {
     const [ingresos, setIngresos] = useState<number>(0);
     const [egresos, setEgresos] = useState<number>(0);
@@ -14,20 +21,18 @@ const StatsGrid = () => {
             try {
                 setLoading(true);
 
-                // Fetch ingresos y egresos en paralelo
-                const [ingresosResponse, egresosResponse, ventasResponse] = await Promise.all([
-                    http.get('/ingresos/total'),
-                    http.get('/gastos/total'),
-                    http.get('/ventas/mes/cantidad')
-                ]);
+                // Fetch estadísticas desde el endpoint unificado
+                const response = await http.get<VentasStatsResponse>('/ventas/stats');
 
-                // Asumiendo que la respuesta viene en response.data
-                setIngresos(ingresosResponse.data || 0);
-                setEgresos(egresosResponse.data || 0);
-                setVentas(ventasResponse.data || 0);
+                // Asignar los valores desde la respuesta
+                setVentas(response.data.ventasDelMes || 0);
+                setIngresos(response.data.ingresosTotalesDelDia || 0);
+                setEgresos(response.data.egresosDelDia || 0);
+                console.log(response.data);
 
             } catch (error) {
                 // En caso de error, mantener los valores en 0
+                console.error(error);
                 setIngresos(0);
                 setEgresos(0);
                 setVentas(0);
@@ -55,7 +60,7 @@ const StatsGrid = () => {
             </Grid>
             <Grid size={{ xs: 12, md: 6, lg: 3 }}>
                 <StatCard
-                    title="Ingresos Totales"
+                    title="Ingresos del Día"
                     value={loading ? <CircularProgress size={24} /> : `$${ingresos.toLocaleString('es-AR')}`}
                     trend="up"
                     trendValue="+8.2%"
@@ -64,7 +69,7 @@ const StatsGrid = () => {
             </Grid>
             <Grid size={{ xs: 12, md: 6, lg: 3 }}>
                 <StatCard
-                    title="Egresos Totales"
+                    title="Egresos del Día"
                     value={loading ? <CircularProgress size={24} /> : `$${egresos.toLocaleString('es-AR')}`}
                     trend="down"
                     trendValue="-2.4%"

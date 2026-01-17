@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Button, Pagination, CircularProgress } from '@mui/material';
-import { MdAdd } from 'react-icons/md';
+import { Box, Typography, Button, Pagination, CircularProgress, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { MdAdd, MdSearch } from 'react-icons/md';
 import SaleModal from '../Ventas/SaleModal';
 import SalesSearchTable from '../Ventas/SalesSearchTable';
 import VentasStats from '../Ventas/VentasStats';
@@ -74,35 +74,98 @@ const VentasContent = () => {
     const [error, setError] = useState<string | null>(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-    // Cargar ventas desde el backend con paginación
+    // Estados para búsqueda (valores temporales en los inputs)
+    const [searchPaymentMethod, setSearchPaymentMethod] = useState<string>('');
+    const [searchDate, setSearchDate] = useState<string>('');
+
+    // Estados para búsqueda activa (valores que se usan en la petición)
+    const [activePaymentMethod, setActivePaymentMethod] = useState<string>('');
+    const [activeSearchDate, setActiveSearchDate] = useState<string>('');
+    const [isSearchActive, setIsSearchActive] = useState(false);
+
+    // Función para convertir método de pago del frontend al backend
+    const convertPaymentMethodToBackend = (method: string): string => {
+        const map: Record<string, string> = {
+            'efectivo': 'EFECTIVO',
+            'mercadopago': 'MERCADO_PAGO',
+            'cuentadni': 'CUENTA_DNI',
+            'tarjetacredito': 'TARJETA_CREDITO',
+            'tarjetadebito': 'TARJETA_DEBITO'
+        };
+        return map[method] || method;
+    };
+
+    // Cargar ventas desde el backend con paginación o búsqueda
     useEffect(() => {
         const fetchVentas = async () => {
             try {
                 setIsLoading(true);
                 setError(null);
 
-                const response = await http.get<PaginatedResponse>(
-                    `/ventas/paginated?page=${currentPage}&size=${ITEMS_PER_PAGE}`
-                );
+                let ventasFormateadas: Sale[] = [];
+                let totalPagesResult = 0;
+                let totalElementsResult = 0;
 
-                // Transformar los datos del backend al formato del frontend
-                const ventasFormateadas: Sale[] = (response.data.content || []).map(venta => ({
-                    id: String(venta.id),
-                    date: venta.fechaHora,
-                    paymentMethod: mapPaymentMethod(venta.metodoPago),
-                    total: venta.total,
-                    items: (venta.detalles || []).map(detalle => ({
-                        productId: String(detalle.id),
-                        productName: detalle.nombreProducto,
-                        quantity: detalle.cantidad,
-                        unitPrice: detalle.precioUnitario,
-                        total: detalle.cantidad * detalle.precioUnitario // Calcular subtotal
-                    }))
-                }));
+                // Si hay búsqueda activa
+                if (isSearchActive && (activePaymentMethod || activeSearchDate)) {
+                    const params = new URLSearchParams();
+                    if (activePaymentMethod) {
+                        // Convertir al formato del backend
+                        const backendMethod = convertPaymentMethodToBackend(activePaymentMethod);
+                        params.append('q', backendMethod);
+                    }
+                    if (activeSearchDate) params.append('fecha', activeSearchDate);
+
+                    const response = await http.get<VentaAPI[]>(`/ventas/search?${params.toString()}`);
+
+                    // Transformar datos
+                    const allVentas = (response.data || []).map(venta => ({
+                        id: String(venta.id),
+                        date: venta.fechaHora,
+                        paymentMethod: mapPaymentMethod(venta.metodoPago),
+                        total: venta.total,
+                        items: (venta.detalles || []).map(detalle => ({
+                            productId: String(detalle.id),
+                            productName: detalle.nombreProducto,
+                            quantity: detalle.cantidad,
+                            unitPrice: detalle.precioUnitario,
+                            total: detalle.cantidad * detalle.precioUnitario
+                        }))
+                    }));
+
+                    // Paginar en el frontend
+                    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                    const endIndex = startIndex + ITEMS_PER_PAGE;
+                    ventasFormateadas = allVentas.slice(startIndex, endIndex);
+                    totalPagesResult = Math.ceil(allVentas.length / ITEMS_PER_PAGE);
+                    totalElementsResult = allVentas.length;
+                } else {
+                    // Sin búsqueda, usar paginación normal
+                    const response = await http.get<PaginatedResponse>(
+                        `/ventas/paginated?page=${currentPage}&size=${ITEMS_PER_PAGE}`
+                    );
+
+                    ventasFormateadas = (response.data.content || []).map(venta => ({
+                        id: String(venta.id),
+                        date: venta.fechaHora,
+                        paymentMethod: mapPaymentMethod(venta.metodoPago),
+                        total: venta.total,
+                        items: (venta.detalles || []).map(detalle => ({
+                            productId: String(detalle.id),
+                            productName: detalle.nombreProducto,
+                            quantity: detalle.cantidad,
+                            unitPrice: detalle.precioUnitario,
+                            total: detalle.cantidad * detalle.precioUnitario
+                        }))
+                    }));
+
+                    totalPagesResult = response.data.totalPages;
+                    totalElementsResult = response.data.totalElements;
+                }
 
                 setSales(ventasFormateadas);
-                setTotalPages(response.data.totalPages);
-                setTotalElements(response.data.totalElements);
+                setTotalPages(totalPagesResult);
+                setTotalElements(totalElementsResult);
             } catch (err: any) {
                 setError('Error al cargar las ventas');
                 setSales([]);
@@ -112,18 +175,40 @@ const VentasContent = () => {
         };
 
         fetchVentas();
-    }, [currentPage, refreshTrigger]);
+    }, [currentPage, refreshTrigger, isSearchActive, activePaymentMethod, activeSearchDate]);
 
-    // Calcular estadísticas del día (temporal - idealmente del backend)
-    const today = new Date().toISOString().split('T')[0];
-    const todaySales = sales.filter(sale => sale.date.startsWith(today));
-    const todayTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0);
-    const todayCount = todaySales.length;
+    // Estados para estadísticas
+    const [todayCount, setTodayCount] = useState(0);
+    const [todayTotal, setTodayTotal] = useState(0);
+    const [totalSales, setTotalSales] = useState(0);
+    const [averageSale, setAverageSale] = useState(0);
 
-    // Estadísticas totales (temporal - idealmente del backend)
-    const totalSales = totalElements;
-    const totalRevenue = sales.reduce((sum, sale) => sum + sale.total, 0);
-    const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
+    // Cargar estadísticas desde el backend
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await http.get<{
+                    ventasDelMes: number;
+                    ingresosTotalesDelDia: number;
+                    egresosDelDia: number;
+                    ventasDelDia: number;
+                }>('/ventas/stats');
+
+                setTodayCount(response.data.ventasDelDia);
+                setTodayTotal(response.data.ingresosTotalesDelDia);
+                setTotalSales(response.data.ventasDelMes);
+                setAverageSale(response.data.ventasDelMes > 0 ? response.data.ingresosTotalesDelDia / response.data.ventasDelMes : 0);
+            } catch (err: any) {
+                // Si falla, mantener valores en 0
+                setTodayCount(0);
+                setTodayTotal(0);
+                setTotalSales(0);
+                setAverageSale(0);
+            }
+        };
+
+        fetchStats();
+    }, [refreshTrigger]); // Recargar cuando se agrega una nueva venta
 
     const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
         setCurrentPage(page);
@@ -178,6 +263,86 @@ const VentasContent = () => {
                 totalSales={totalSales}
                 averageSale={averageSale}
             />
+
+            {/* Search Section */}
+            <Box sx={{ mb: 4, p: 3, bgcolor: '#f8fafc', borderRadius: 3, border: '1px solid #e2e8f0' }}>
+                <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a', mb: 2 }}>
+                    Buscar Ventas
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr auto' }, gap: 2, alignItems: 'end' }}>
+                    <FormControl fullWidth>
+                        <InputLabel>Método de Pago</InputLabel>
+                        <Select
+                            value={searchPaymentMethod}
+                            label="Método de Pago"
+                            onChange={(e) => setSearchPaymentMethod(e.target.value)}
+                            sx={{ bgcolor: 'white' }}
+                        >
+                            <MenuItem value="">Todos</MenuItem>
+                            <MenuItem value="efectivo">Efectivo</MenuItem>
+                            <MenuItem value="mercadopago">Mercado Pago</MenuItem>
+                            <MenuItem value="cuentadni">Cuenta DNI</MenuItem>
+                            <MenuItem value="tarjetacredito">Tarjeta de Crédito</MenuItem>
+                            <MenuItem value="tarjetadebito">Tarjeta de Débito</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    <TextField
+                        fullWidth
+                        type="date"
+                        label="Fecha"
+                        value={searchDate}
+                        onChange={(e) => setSearchDate(e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ bgcolor: 'white' }}
+                    />
+
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                            variant="contained"
+                            startIcon={<MdSearch />}
+                            onClick={() => {
+                                setActivePaymentMethod(searchPaymentMethod);
+                                setActiveSearchDate(searchDate);
+                                setIsSearchActive(true);
+                                setCurrentPage(1);
+                            }}
+                            disabled={!searchPaymentMethod && !searchDate}
+                            sx={{
+                                bgcolor: '#0f172a',
+                                '&:hover': { bgcolor: '#1e293b' },
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                px: 3
+                            }}
+                        >
+                            Buscar
+                        </Button>
+                        {isSearchActive && (
+                            <Button
+                                variant="outlined"
+                                onClick={() => {
+                                    setSearchPaymentMethod('');
+                                    setSearchDate('');
+                                    setActivePaymentMethod('');
+                                    setActiveSearchDate('');
+                                    setIsSearchActive(false);
+                                    setCurrentPage(1);
+                                }}
+                                sx={{
+                                    borderColor: '#0f172a',
+                                    color: '#0f172a',
+                                    '&:hover': { borderColor: '#1e293b', bgcolor: '#f1f5f9' },
+                                    textTransform: 'none',
+                                    fontWeight: 600
+                                }}
+                            >
+                                Limpiar
+                            </Button>
+                        )}
+                    </Box>
+                </Box>
+            </Box>
 
             {/* Sales Table */}
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a', mb: 3 }}>
@@ -241,6 +406,19 @@ const VentasContent = () => {
                                 size="large"
                                 showFirstButton
                                 showLastButton
+                                sx={{
+                                    '& .MuiPaginationItem-root': {
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                    },
+                                    '& .Mui-selected': {
+                                        bgcolor: '#0f172a !important',
+                                        color: 'white',
+                                        '&:hover': {
+                                            bgcolor: '#1e293b !important',
+                                        }
+                                    }
+                                }}
                             />
                         </Box>
                     )}

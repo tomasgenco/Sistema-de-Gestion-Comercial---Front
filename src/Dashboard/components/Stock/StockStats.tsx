@@ -47,7 +47,20 @@ const StockStats = ({ totalProducts, lowStockProducts, outOfStockProducts, total
                 const Icon = stat.icon;
                 return (
                     <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
-                        <Card elevation={0} sx={{ borderRadius: 4, height: '100%', border: '1px solid #e2e8f0' }}>
+                        <Card
+                            elevation={0}
+                            sx={{
+                                borderRadius: 4,
+                                height: '100%',
+                                border: '1px solid #e2e8f0',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-4px)',
+                                    boxShadow: '0 12px 24px rgba(0,0,0,0.1)',
+                                    borderColor: stat.color
+                                }
+                            }}
+                        >
                             <CardContent>
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                                     <Typography variant="subtitle2" color="text.secondary" fontWeight={500}>
