@@ -78,7 +78,7 @@ const SalesSearchTable = ({ sales }: SalesSearchTableProps) => {
         });
     };
 
-    if (sales.length === 0) {
+    if (!sales || sales.length === 0) {
         return (
             <Box
                 sx={{
@@ -92,7 +92,7 @@ const SalesSearchTable = ({ sales }: SalesSearchTableProps) => {
                 }}
             >
                 <Typography variant="body1" color="text.secondary">
-                    No se encontraron ventas con los filtros aplicados
+                    No se encontraron ventas
                 </Typography>
             </Box>
         );

@@ -36,12 +36,6 @@ export default function LoginForm() {
         setError('');
         try {
             const response = await http.post('/auth/login', { username, password });
-            console.log('Login successful');
-            console.log('Response completa:', response); // Debug completo
-            console.log('Response data:', response.data); // Debug
-            console.log('Tipo de response.data:', typeof response.data); // Debug
-            console.log('response.data.role:', response.data?.role); // Debug
-            console.log('response.data.rol:', response.data?.rol); // Debug
 
             // Guardar el rol del usuario si viene en la respuesta
             if (response.data) {
@@ -53,15 +47,12 @@ export default function LoginForm() {
                     'Usuario';
 
                 localStorage.setItem('userRole', role);
-                console.log('Rol guardado:', role);
             } else {
-                console.warn('response.data está vacío o undefined');
                 localStorage.setItem('userRole', 'Usuario');
             }
 
             navigate('/dashboard');
         } catch (err) {
-            console.error(err);
             setError('Credenciales inválidas. Por favor intente nuevamente.');
         } finally {
             setLoading(false);

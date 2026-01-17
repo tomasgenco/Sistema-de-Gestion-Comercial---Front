@@ -13,38 +13,67 @@ import {
     MenuItem,
     FormControl,
     InputLabel,
-    Divider
+    Divider,
+    CircularProgress,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import { MdClose, MdSearch, MdQrCodeScanner } from 'react-icons/md';
-import type { Sale, SaleItem } from './VentasContent';
+import type { SaleItem } from './VentasContent';
 import SaleDetailTable from '../Ventas/SaleDetailTable';
+import { http } from '../../../shared/api/http';
 
 interface SaleModalProps {
     open: boolean;
     onClose: () => void;
-    onSave: (sale: Omit<Sale, 'id'>) => void;
+    onSave: () => void;
 }
 
-// Mock products (mismos que en Stock)
-const mockProducts = [
-    { id: 'P-001', name: 'Laptop Dell XPS 15', barcode: '7891234567890', price: 1250000, stock: 15 },
-    { id: 'P-002', name: 'Mouse Logitech MX Master', barcode: '7891234567891', price: 85000, stock: 45 },
-    { id: 'P-003', name: 'Teclado Mecánico RGB', barcode: '7891234567892', price: 120000, stock: 3 },
-    { id: 'P-004', name: 'Monitor Samsung 27"', barcode: '7891234567893', price: 350000, stock: 0 },
-    { id: 'P-005', name: 'Webcam Logitech C920', barcode: '7891234567894', price: 95000, stock: 22 },
-    { id: 'P-006', name: 'Auriculares Sony WH-1000XM4', barcode: '7891234567895', price: 280000, stock: 12 },
-    { id: 'P-007', name: 'SSD Samsung 1TB', barcode: '7891234567896', price: 125000, stock: 5 },
-    { id: 'P-008', name: 'RAM Corsair 16GB', barcode: '7891234567897', price: 75000, stock: 30 },
-    { id: 'P-009', name: 'Procesador Intel i7', barcode: '7891234567898', price: 450000, stock: 8 },
-    { id: 'P-010', name: 'Placa de Video RTX 3060', barcode: '7891234567899', price: 650000, stock: 4 },
-];
+// Interface para la respuesta del producto del backend
+interface ProductoAPI {
+    id: number;
+    nombre: string;
+    sku: string;
+    precio: number;
+    stock: number;
+}
+
+// Mapear método de pago del frontend al backend
+const mapPaymentMethodToBackend = (method: string): string => {
+    const map: Record<string, string> = {
+        'efectivo': 'EFECTIVO',
+        'mercadopago': 'MERCADO_PAGO',
+        'cuentadni': 'CUENTA_DNI',
+        'tarjetacredito': 'TARJETA_CREDITO',
+        'tarjetadebito': 'TARJETA_DEBITO'
+    };
+    return map[method] || 'EFECTIVO';
+};
 
 const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
     const [items, setItems] = useState<SaleItem[]>([]);
     const [searchByName, setSearchByName] = useState('');
+    const [suggestions, setSuggestions] = useState<ProductoAPI[]>([]);
     const [searchByBarcode, setSearchByBarcode] = useState('');
     const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'mercadopago' | 'cuentadni' | 'tarjetacredito' | 'tarjetadebito'>('efectivo');
     const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Estado para notificaciones (SnackBar)
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'warning' | 'info'>('info');
+
+    const showSnackbar = (message: string, severity: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+        setSnackbarMessage(message);
+        setSnackbarSeverity(severity);
+        setSnackbarOpen(true);
+    };
+
+    const handleSnackbarClose = () => {
+        setSnackbarOpen(false);
+    };
 
     const barcodeInputRef = useRef<HTMLInputElement>(null);
     const lastInputTimeRef = useRef<number>(0);
@@ -55,9 +84,11 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
         if (open) {
             setItems([]);
             setSearchByName('');
+            setSuggestions([]);
             setSearchByBarcode('');
             setPaymentMethod('efectivo');
             setConfirmModalOpen(false);
+            setError(null);
         }
     }, [open]);
 
@@ -106,6 +137,24 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
         }
     }, [open, searchByBarcode]);
 
+    // Cargar sugerencias al escribir nombre
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (searchByName.trim().length > 1) {
+                try {
+                    const response = await http.get<ProductoAPI[]>(`/producto/search?q=${encodeURIComponent(searchByName)}`);
+                    setSuggestions(response.data || []);
+                } catch (err) {
+                    setSuggestions([]);
+                }
+            } else {
+                setSuggestions([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchByName]);
+
     const handleBarcodeKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -113,61 +162,67 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
         }
     };
 
-    const handleAddByBarcode = () => {
+    const handleAddByBarcode = async () => {
         if (!searchByBarcode.trim()) return;
 
-        const product = mockProducts.find(p => p.barcode === searchByBarcode.trim());
+        try {
+            const response = await http.get<ProductoAPI[]>(`/producto/search?q=${encodeURIComponent(searchByBarcode.trim())}`);
+            const product = response.data?.[0]; // Tomamos el primer resultado que coincida con el código (SKU)
 
-        if (product) {
-            if (product.stock === 0) {
-                alert('Producto sin stock disponible');
+            if (product) {
+                if (product.stock === 0) {
+                    showSnackbar('Producto sin stock disponible', 'warning');
+                    setSearchByBarcode('');
+                    return;
+                }
+
+                addProductToSale(product);
                 setSearchByBarcode('');
-                return;
+                barcodeInputRef.current?.focus();
+            } else {
+                showSnackbar('Código de barras no encontrado', 'error');
+                setSearchByBarcode('');
             }
-
-            addProductToSale(product);
-            setSearchByBarcode('');
-            // Mantener el foco en el input de código de barras
-            barcodeInputRef.current?.focus();
-        } else {
-            alert('Código de barras no encontrado');
-            setSearchByBarcode('');
+        } catch (err) {
+            showSnackbar('Error al buscar el producto', 'error');
         }
     };
 
-    const handleAddByName = () => {
+    const handleAddByName = async () => {
         if (!searchByName.trim()) return;
 
-        const product = mockProducts.find(p =>
-            p.name.toLowerCase().includes(searchByName.toLowerCase())
-        );
+        try {
+            const response = await http.get<ProductoAPI[]>(`/producto/search?q=${encodeURIComponent(searchByName.trim())}`);
+            const product = response.data?.[0];
 
-        if (product) {
-            if (product.stock === 0) {
-                alert('Producto sin stock disponible');
+            if (product) {
+                if (product.stock === 0) {
+                    showSnackbar('Producto sin stock disponible', 'warning');
+                    setSearchByName('');
+                    return;
+                }
+
+                addProductToSale(product);
                 setSearchByName('');
-                return;
+                setSuggestions([]);
+            } else {
+                showSnackbar('Producto no encontrado', 'warning');
+                setSearchByName('');
             }
-
-            addProductToSale(product);
-            setSearchByName('');
-        } else {
-            alert('Producto no encontrado');
-            setSearchByName('');
+        } catch (err) {
+            showSnackbar('Error al buscar el producto', 'error');
         }
     };
 
-    const addProductToSale = (product: typeof mockProducts[0]) => {
-        const existingItemIndex = items.findIndex(item => item.productId === product.id);
+    const addProductToSale = (product: ProductoAPI) => {
+        const existingItemIndex = items.findIndex(item => item.productId === String(product.id));
 
         if (existingItemIndex >= 0) {
-            // Si ya existe, aumentar cantidad
             const newItems = [...items];
             const currentQuantity = newItems[existingItemIndex].quantity;
 
-            // Verificar stock disponible
             if (currentQuantity >= product.stock) {
-                alert(`Stock máximo alcanzado (${product.stock} unidades)`);
+                showSnackbar(`Stock máximo alcanzado (${product.stock} unidades)`, 'warning');
                 return;
             }
 
@@ -175,43 +230,40 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
             newItems[existingItemIndex].total = newItems[existingItemIndex].quantity * newItems[existingItemIndex].unitPrice;
             setItems(newItems);
         } else {
-            // Si no existe, agregar nuevo item
             const newItem: SaleItem = {
-                productId: product.id,
-                productName: product.name,
+                productId: String(product.id),
+                productName: product.nombre,
                 quantity: 1,
-                unitPrice: product.price,
-                total: product.price
+                unitPrice: product.precio,
+                total: product.precio,
+                maxStock: product.stock
             };
             setItems([...items, newItem]);
         }
     };
 
     const handleQuantityChange = (productId: string, newQuantity: number) => {
-        const product = mockProducts.find(p => p.id === productId);
-
-        if (!product) return;
-
-        if (newQuantity > product.stock) {
-            alert(`Stock máximo: ${product.stock} unidades`);
+        if (newQuantity <= 0) {
+            setItems(items.filter(item => item.productId !== productId));
             return;
         }
 
-        if (newQuantity <= 0) {
-            // Eliminar item si la cantidad es 0 o menor
-            setItems(items.filter(item => item.productId !== productId));
-        } else {
-            setItems(items.map(item => {
-                if (item.productId === productId) {
-                    return {
-                        ...item,
-                        quantity: newQuantity,
-                        total: newQuantity * item.unitPrice
-                    };
+        setItems(items.map(item => {
+            if (item.productId === productId) {
+                // Validación local usando el stock guardado
+                if (item.maxStock !== undefined && newQuantity > item.maxStock) {
+                    showSnackbar(`Stock máximo: ${item.maxStock} unidades`, 'warning');
+                    return item; // Retornar item sin cambios
                 }
-                return item;
-            }));
-        }
+
+                return {
+                    ...item,
+                    quantity: newQuantity,
+                    total: newQuantity * item.unitPrice
+                };
+            }
+            return item;
+        }));
     };
 
     const handleRemoveItem = (productId: string) => {
@@ -224,23 +276,42 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
 
     const handleSaveClick = () => {
         if (items.length === 0) {
-            alert('Debe agregar al menos un producto a la venta');
+            showSnackbar('Debe agregar al menos un producto a la venta', 'warning');
             return;
         }
         setConfirmModalOpen(true);
     };
 
-    const handleConfirmSave = () => {
-        const sale: Omit<Sale, 'id'> = {
-            date: new Date().toISOString(),
-            paymentMethod,
-            total: calculateTotal(),
-            items
-        };
+    const handleConfirmSave = async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
 
-        onSave(sale);
-        setConfirmModalOpen(false);
-        onClose();
+            // Preparar datos en el formato del backend
+            const ventaData = {
+                metodoPago: mapPaymentMethodToBackend(paymentMethod),
+                items: items.map(item => ({
+                    nombreProducto: item.productName,
+                    cantidad: item.quantity,
+                    precioUnitario: item.unitPrice
+                }))
+            };
+
+            // Enviar al backend
+            await http.post('/ventas', ventaData);
+
+            // Cerrar modales y limpiar
+            setConfirmModalOpen(false);
+            onClose();
+
+            // Notificar al padre para recargar la lista
+            onSave();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Error al guardar la venta');
+            setConfirmModalOpen(false);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -329,66 +400,61 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                             </Box>
 
                             {/* Sugerencias en tiempo real */}
-                            {searchByName.trim().length > 0 && (
+                            {suggestions.length > 0 && (
                                 <Box
                                     sx={{
+                                        position: 'absolute',
+                                        top: '100%',
+                                        left: 0,
+                                        right: 0,
+                                        zIndex: 10,
                                         bgcolor: 'white',
                                         border: '1px solid #e2e8f0',
                                         borderRadius: 2,
-                                        maxHeight: 200,
+                                        maxHeight: 250,
                                         overflow: 'auto',
-                                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
                                     }}
                                 >
-                                    {mockProducts
-                                        .filter(p => p.name.toLowerCase().includes(searchByName.toLowerCase()))
-                                        .slice(0, 5)
-                                        .map((product) => (
-                                            <Box
-                                                key={product.id}
-                                                onClick={() => {
-                                                    if (product.stock === 0) {
-                                                        alert('Producto sin stock disponible');
-                                                        return;
-                                                    }
-                                                    addProductToSale(product);
-                                                    setSearchByName('');
-                                                }}
-                                                sx={{
-                                                    p: 2,
-                                                    cursor: product.stock === 0 ? 'not-allowed' : 'pointer',
-                                                    borderBottom: '1px solid #f1f5f9',
-                                                    opacity: product.stock === 0 ? 0.5 : 1,
-                                                    '&:hover': {
-                                                        bgcolor: product.stock === 0 ? 'transparent' : '#f8fafc'
-                                                    },
-                                                    '&:last-child': {
-                                                        borderBottom: 'none'
-                                                    }
-                                                }}
-                                            >
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <Box>
-                                                        <Typography variant="body2" fontWeight={600}>
-                                                            {product.name}
-                                                        </Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            ID: {product.id} | Stock: {product.stock}
-                                                        </Typography>
-                                                    </Box>
-                                                    <Typography variant="body2" fontWeight={700} sx={{ color: '#0f172a' }}>
-                                                        ${product.price.toLocaleString('es-AR')}
+                                    {suggestions.map((product) => (
+                                        <Box
+                                            key={product.id}
+                                            onClick={() => {
+                                                if (product.stock === 0) {
+                                                    alert('Producto sin stock disponible');
+                                                    return;
+                                                }
+                                                addProductToSale(product);
+                                                setSearchByName('');
+                                            }}
+                                            sx={{
+                                                p: 2,
+                                                cursor: product.stock === 0 ? 'not-allowed' : 'pointer',
+                                                borderBottom: '1px solid #f1f5f9',
+                                                opacity: product.stock === 0 ? 0.5 : 1,
+                                                '&:hover': {
+                                                    bgcolor: product.stock === 0 ? 'transparent' : '#f8fafc'
+                                                },
+                                                '&:last-child': {
+                                                    borderBottom: 'none'
+                                                }
+                                            }}
+                                        >
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Box>
+                                                    <Typography variant="body2" fontWeight={600}>
+                                                        {product.nombre}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        SKU: {product.sku} | Stock: {product.stock}
                                                     </Typography>
                                                 </Box>
+                                                <Typography variant="body2" fontWeight={700} sx={{ color: '#0f172a' }}>
+                                                    ${product.precio.toLocaleString('es-AR')}
+                                                </Typography>
                                             </Box>
-                                        ))}
-                                    {mockProducts.filter(p => p.name.toLowerCase().includes(searchByName.toLowerCase())).length === 0 && (
-                                        <Box sx={{ p: 2, textAlign: 'center' }}>
-                                            <Typography variant="body2" color="text.secondary">
-                                                No se encontraron productos
-                                            </Typography>
                                         </Box>
-                                    )}
+                                    ))}
                                 </Box>
                             )}
                         </Box>
@@ -492,6 +558,13 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                     </Typography>
                 </DialogTitle>
                 <DialogContent>
+                    {error && (
+                        <Box sx={{ mb: 2, p: 2, bgcolor: '#fee2e2', borderRadius: 2 }}>
+                            <Typography variant="body2" color="error">
+                                {error}
+                            </Typography>
+                        </Box>
+                    )}
                     <Typography variant="body1" color="text.secondary">
                         ¿Está seguro que desea guardar esta venta por un total de <strong>${calculateTotal().toLocaleString('es-AR')}</strong>?
                     </Typography>
@@ -500,6 +573,7 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                     <Button
                         onClick={() => setConfirmModalOpen(false)}
                         variant="outlined"
+                        disabled={isLoading}
                         sx={{ textTransform: 'none', fontWeight: 600 }}
                     >
                         Cancelar
@@ -507,6 +581,8 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                     <Button
                         onClick={handleConfirmSave}
                         variant="contained"
+                        disabled={isLoading}
+                        startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
                         sx={{
                             bgcolor: '#10b981',
                             textTransform: 'none',
@@ -516,10 +592,27 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                             }
                         }}
                     >
-                        Confirmar
+                        {isLoading ? 'Guardando...' : 'Confirmar'}
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Snackbar para notificaciones */}
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={4000}
+                onClose={handleSnackbarClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={handleSnackbarClose}
+                    severity={snackbarSeverity}
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
         </>
     );
 };

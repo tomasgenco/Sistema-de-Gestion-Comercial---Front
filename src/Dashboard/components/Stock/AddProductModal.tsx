@@ -7,15 +7,34 @@ import {
     TextField,
     Button,
     Box,
-    IconButton
+    IconButton,
+    CircularProgress,
+    Alert
 } from '@mui/material';
 import { MdClose } from 'react-icons/md';
-import type { Product } from './ProductTable';
+import { http } from '../../../shared/api/http';
 
 interface AddProductModalProps {
     open: boolean;
     onClose: () => void;
-    onAdd: (product: Omit<Product, 'id'>) => void;
+    onAdd: () => void;
+}
+
+// Tipo para el request al backend
+interface ProductoRequest {
+    nombre: string;
+    precio: number;
+    sku: string;
+    stock: number;
+}
+
+// Tipo para la respuesta del backend
+interface ProductoResponse {
+    id: number;
+    nombre: string;
+    precio: number;
+    sku: string;
+    stock: number;
 }
 
 const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
@@ -23,19 +42,37 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
     const [barcode, setBarcode] = useState('');
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleAdd = () => {
+    const handleAdd = async () => {
         if (name.trim() && barcode.trim() && price.trim() && stock.trim()) {
-            const stockNum = parseInt(stock);
-            const newProduct: Omit<Product, 'id'> = {
-                name: name.trim(),
-                barcode: barcode.trim(),
-                price: parseFloat(price),
-                stock: stockNum,
-                status: stockNum === 0 ? 'out' : stockNum <= 5 ? 'low' : 'available'
-            };
-            onAdd(newProduct);
-            handleClose();
+            try {
+                setLoading(true);
+                setError(null);
+
+                const stockNum = parseInt(stock);
+                const priceNum = parseFloat(price);
+
+                // Preparar el request según el formato del backend
+                const requestData: ProductoRequest = {
+                    nombre: name.trim(),
+                    precio: priceNum,
+                    sku: barcode.trim(),
+                    stock: stockNum
+                };
+
+                // Hacer POST al backend
+                await http.post<ProductoResponse>('/producto', requestData);
+
+                // Notificar que se agregó el producto
+                onAdd();
+                handleClose();
+            } catch (err: any) {
+                setError(err.response?.data?.message || 'Error al agregar el producto');
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -44,6 +81,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
         setBarcode('');
         setPrice('');
         setStock('');
+        setError(null);
         onClose();
     };
 
@@ -64,12 +102,18 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                 <Box sx={{ fontWeight: 'bold', fontSize: '1.25rem', color: '#0f172a' }}>
                     Agregar Nuevo Producto
                 </Box>
-                <IconButton onClick={handleClose} size="small">
+                <IconButton onClick={handleClose} size="small" disabled={loading}>
                     <MdClose />
                 </IconButton>
             </DialogTitle>
             <DialogContent>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+                    {error && (
+                        <Alert severity="error" onClose={() => setError(null)}>
+                            {error}
+                        </Alert>
+                    )}
+
                     <TextField
                         label="Nombre del Producto"
                         value={name}
@@ -77,20 +121,16 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                         fullWidth
                         variant="outlined"
                         autoFocus
+                        disabled={loading}
                     />
                     <TextField
-                        label="Código de Barra"
+                        label="SKU"
                         value={barcode}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            // Solo permitir números
-                            if (value === '' || /^\d+$/.test(value)) {
-                                setBarcode(value);
-                            }
-                        }}
+                        onChange={(e) => setBarcode(e.target.value)}
                         fullWidth
                         variant="outlined"
-                        placeholder="Ej: 7891234567890"
+                        placeholder="Ej: SKU-001"
+                        disabled={loading}
                         inputProps={{
                             style: { fontFamily: 'monospace' }
                         }}
@@ -107,6 +147,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                         fullWidth
                         variant="outlined"
                         type="text"
+                        disabled={loading}
                         InputProps={{
                             startAdornment: <Box sx={{ mr: 1, color: '#64748b' }}>$</Box>,
                         }}
@@ -124,6 +165,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                         variant="outlined"
                         type="text"
                         placeholder="Cantidad de unidades"
+                        disabled={loading}
                     />
                 </Box>
             </DialogContent>
@@ -131,6 +173,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                 <Button
                     onClick={handleClose}
                     variant="outlined"
+                    disabled={loading}
                     sx={{
                         borderRadius: 2,
                         textTransform: 'none',
@@ -148,7 +191,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                 <Button
                     onClick={handleAdd}
                     variant="contained"
-                    disabled={!name.trim() || !barcode.trim() || !price.trim() || !stock.trim()}
+                    disabled={!name.trim() || !barcode.trim() || !price.trim() || !stock.trim() || loading}
                     sx={{
                         borderRadius: 2,
                         textTransform: 'none',
@@ -159,7 +202,14 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                         }
                     }}
                 >
-                    Agregar Producto
+                    {loading ? (
+                        <>
+                            <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
+                            Agregando...
+                        </>
+                    ) : (
+                        'Agregar Producto'
+                    )}
                 </Button>
             </DialogActions>
         </Dialog>

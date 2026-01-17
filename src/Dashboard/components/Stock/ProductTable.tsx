@@ -60,7 +60,7 @@ const ProductTable = ({ products, onEdit }: ProductTableProps) => {
                     <TableHead sx={{ bgcolor: '#f8fafc' }}>
                         <TableRow>
                             <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Producto</TableCell>
-                            <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Código de Barra</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>SKU</TableCell>
                             <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Precio</TableCell>
                             <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Stock</TableCell>
                             <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Estado</TableCell>

@@ -34,9 +34,8 @@ const Sidebar = ({ activeModule, onModuleChange }: SidebarProps) => {
                 method: 'POST',
                 credentials: 'include', // Importante para enviar las cookies
             });
-            console.log('Logout en backend exitoso');
         } catch (error) {
-            console.error('Error al hacer logout en backend:', error);
+            // Error silencioso
         }
 
         // Limpiar localStorage
@@ -50,7 +49,7 @@ const Sidebar = ({ activeModule, onModuleChange }: SidebarProps) => {
             document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
         });
 
-        console.log('Sesión cerrada - localStorage limpiado');
+
 
         // Cerrar modal y navegar al login
         setLogoutModalOpen(false);

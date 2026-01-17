@@ -23,7 +23,6 @@ const RecentSalesTable = () => {
                 const response = await http.get('/ventas/ultimas');
                 setVentas(response.data || []);
             } catch (err) {
-                console.error('Error al cargar ventas:', err);
                 setError('Error al cargar las ventas');
                 setVentas([]);
             } finally {
@@ -43,7 +42,6 @@ const RecentSalesTable = () => {
 
             // Verificar si la fecha es válida
             if (isNaN(date.getTime())) {
-                console.error('Fecha inválida:', fechaHora);
                 return '--/--/-- --:--';
             }
 
@@ -62,25 +60,31 @@ const RecentSalesTable = () => {
 
             return `${fechaFormateada} ${horaFormateada}`;
         } catch (error) {
-            console.error('Error al formatear fecha:', error, fechaHora);
             return '--/--/-- --:--';
         }
     };
 
 
     // Función para obtener el color del chip según el método de pago
+    // Función para obtener el color del chip según el método de pago
     const getPaymentMethodColor = (method: string) => {
-        const methodLower = method.toLowerCase();
+        // Normalizar a minúsculas y quitar espacios para consistencia
+        const methodLower = method.toLowerCase().replace(/\s+/g, '');
+
         if (methodLower.includes('efectivo')) {
-            return { bgcolor: '#dcfce7', color: '#166534' };
-        } else if (methodLower.includes('mercado pago') || methodLower.includes('mercadopago')) {
-            return { bgcolor: '#e0f2fe', color: '#0369a1' };
-        } else if (methodLower.includes('tarjeta') || methodLower.includes('débito') || methodLower.includes('crédito')) {
-            return { bgcolor: '#fef3c7', color: '#92400e' };
+            return { bgcolor: '#dcfce7', color: '#16a34a' };
+        } else if (methodLower.includes('mercadopago')) {
+            return { bgcolor: '#dbeafe', color: '#2563eb' };
+        } else if (methodLower.includes('cuentadni')) {
+            return { bgcolor: '#fef3c7', color: '#d97706' };
+        } else if (methodLower.includes('tarjetacredito') || (methodLower.includes('tarjeta') && methodLower.includes('credito'))) {
+            return { bgcolor: '#fce7f3', color: '#db2777' };
+        } else if (methodLower.includes('tarjetadebito') || (methodLower.includes('tarjeta') && methodLower.includes('debito'))) {
+            return { bgcolor: '#e0e7ff', color: '#6366f1' };
         } else if (methodLower.includes('transferencia')) {
             return { bgcolor: '#e9d5ff', color: '#6b21a8' };
         }
-        return { bgcolor: '#f1f5f9', color: '#475569' };
+        return { bgcolor: '#f1f5f9', color: '#64748b' };
     };
 
     return (

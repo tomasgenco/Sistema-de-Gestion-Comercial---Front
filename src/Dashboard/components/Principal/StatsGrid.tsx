@@ -27,7 +27,6 @@ const StatsGrid = () => {
                 setVentas(ventasResponse.data || 0);
 
             } catch (error) {
-                console.error('Error al cargar datos:', error);
                 // En caso de error, mantener los valores en 0
                 setIngresos(0);
                 setEgresos(0);

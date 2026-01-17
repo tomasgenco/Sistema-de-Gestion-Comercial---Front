@@ -1,14 +1,15 @@
 import { Grid } from '@mui/material';
 import { Card, CardContent, Typography, Box } from '@mui/material';
-import { MdInventory, MdTrendingDown, MdAttachMoney } from 'react-icons/md';
+import { MdInventory, MdTrendingDown, MdAttachMoney, MdRemoveShoppingCart } from 'react-icons/md';
 
 interface StockStatsProps {
     totalProducts: number;
     lowStockProducts: number;
+    outOfStockProducts: number;
     totalValue: number;
 }
 
-const StockStats = ({ totalProducts, lowStockProducts, totalValue }: StockStatsProps) => {
+const StockStats = ({ totalProducts, lowStockProducts, outOfStockProducts, totalValue }: StockStatsProps) => {
     const stats = [
         {
             title: 'Total Productos',
@@ -23,6 +24,13 @@ const StockStats = ({ totalProducts, lowStockProducts, totalValue }: StockStatsP
             icon: MdTrendingDown,
             color: '#f59e0b',
             bgColor: '#fef3c7'
+        },
+        {
+            title: 'Sin Stock',
+            value: outOfStockProducts.toString(),
+            icon: MdRemoveShoppingCart,
+            color: '#ef4444',
+            bgColor: '#fee2e2'
         },
         {
             title: 'Valor Total',

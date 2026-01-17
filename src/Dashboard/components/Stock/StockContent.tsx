@@ -1,10 +1,11 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Typography, Button, TextField, Select, MenuItem, FormControl, InputLabel, Pagination, CircularProgress } from '@mui/material';
 import { MdAdd, MdSearch } from 'react-icons/md';
 import ProductTable, { type Product } from './ProductTable';
 import EditProductModal from './EditProductModal';
 import AddProductModal from './AddProductModal';
 import StockStats from './StockStats';
+import { http } from '../../../shared/api/http';
 
 // Función para determinar el estado del producto basado en stock
 const getProductStatus = (stock: number): 'available' | 'low' | 'out' => {
@@ -13,80 +14,160 @@ const getProductStatus = (stock: number): 'available' | 'low' | 'out' => {
     return 'available';
 };
 
-// Datos de ejemplo (mock data)
-const initialProducts: Product[] = [
-    { id: 'P-001', name: 'Laptop Dell XPS 15', barcode: '7891234567890', price: 1250000, stock: 15, status: 'available' },
-    { id: 'P-002', name: 'Mouse Logitech MX Master', barcode: '7891234567891', price: 85000, stock: 45, status: 'available' },
-    { id: 'P-003', name: 'Teclado Mecánico RGB', barcode: '7891234567892', price: 120000, stock: 3, status: 'low' },
-    { id: 'P-004', name: 'Monitor Samsung 27"', barcode: '7891234567893', price: 350000, stock: 0, status: 'out' },
-    { id: 'P-005', name: 'Webcam Logitech C920', barcode: '7891234567894', price: 95000, stock: 22, status: 'available' },
-    { id: 'P-006', name: 'Auriculares Sony WH-1000XM4', barcode: '7891234567895', price: 280000, stock: 12, status: 'available' },
-    { id: 'P-007', name: 'SSD Samsung 1TB', barcode: '7891234567896', price: 125000, stock: 5, status: 'low' },
-    { id: 'P-008', name: 'RAM Corsair 16GB', barcode: '7891234567897', price: 75000, stock: 30, status: 'available' },
-    { id: 'P-009', name: 'Procesador Intel i7', barcode: '7891234567898', price: 450000, stock: 8, status: 'available' },
-    { id: 'P-010', name: 'Placa de Video RTX 3060', barcode: '7891234567899', price: 650000, stock: 4, status: 'low' },
-    { id: 'P-011', name: 'Motherboard ASUS ROG', barcode: '7891234567900', price: 320000, stock: 6, status: 'available' },
-    { id: 'P-012', name: 'Fuente Corsair 750W', barcode: '7891234567901', price: 180000, stock: 12, status: 'available' },
-    { id: 'P-013', name: 'Gabinete NZXT H510', barcode: '7891234567902', price: 95000, stock: 2, status: 'low' },
-    { id: 'P-014', name: 'Cooler Noctua NH-D15', barcode: '7891234567903', price: 125000, stock: 18, status: 'available' },
-    { id: 'P-015', name: 'Pasta Térmica Arctic MX-4', barcode: '7891234567904', price: 8500, stock: 50, status: 'available' },
-];
+// Tipo de dato que viene del backend
+interface ProductoAPI {
+    id: number;
+    nombre: string;
+    precio: number;
+    sku: string;
+    stock: number;
+}
 
+// Tipo para la respuesta paginada del backend
+interface PaginatedResponse {
+    content: ProductoAPI[];
+    totalElements: number;
+    totalPages: number;
+    size: number;
+    number: number;
+    first: boolean;
+    last: boolean;
+}
+
+// Tipo para la respuesta de estadísticas del backend
+interface StatsResponse {
+    totalProductos: number;
+    productosStockBajo: number;
+    productosSinStock: number;
+    valorTotalInventario: number;
+}
 
 const ITEMS_PER_PAGE = 10;
 
 const StockContent = () => {
-    const [products, setProducts] = useState<Product[]>(initialProducts);
+    const [products, setProducts] = useState<Product[]>([]);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [addModalOpen, setAddModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeSearch, setActiveSearch] = useState(''); // Término de búsqueda activo
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const [isLoading, setIsLoading] = useState(false);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Filtrar y buscar productos (por nombre O código de barra)
-    const filteredProducts = useMemo(() => {
-        return products.filter(product => {
-            // Filtro de búsqueda (nombre o código de barra)
-            const searchLower = searchTerm.toLowerCase();
-            const matchesSearch =
-                product.name.toLowerCase().includes(searchLower) ||
-                product.barcode.includes(searchTerm);
+    // Estados para estadísticas
+    const [totalProductsFromServer, setTotalProductsFromServer] = useState(0);
+    const [lowStockProducts, setLowStockProducts] = useState(0);
+    const [outOfStockProducts, setOutOfStockProducts] = useState(0);
+    const [totalValue, setTotalValue] = useState(0);
 
-            // Filtro de estado
-            const matchesStatus = statusFilter === 'all' || product.status === statusFilter;
+    // Cargar productos desde el backend con paginación o búsqueda
+    useEffect(() => {
+        const fetchProductos = async () => {
+            try {
+                setIsLoading(true);
+                setError(null);
 
-            return matchesSearch && matchesStatus;
-        });
-    }, [products, searchTerm, statusFilter]);
+                // Si hay búsqueda activa, usar endpoint de búsqueda
+                if (activeSearch.trim()) {
+                    // El endpoint de búsqueda retorna una lista simple, no paginada
+                    const response = await http.get<ProductoAPI[]>(
+                        `/producto/search?q=${encodeURIComponent(activeSearch)}`
+                    );
 
-    // Calcular paginación
-    const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+                    // Transformar los datos del backend al formato del frontend
+                    const productosFormateados: Product[] = (response.data || []).map(producto => ({
+                        id: String(producto.id),
+                        name: producto.nombre,
+                        barcode: producto.sku,
+                        price: producto.precio,
+                        stock: producto.stock,
+                        status: getProductStatus(producto.stock)
+                    }));
 
-    // Calcular estadísticas
-    const totalProducts = products.length;
-    const lowStockProducts = products.filter(p => p.status === 'low' || p.status === 'out').length;
-    const totalValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
+                    setProducts(productosFormateados);
+                    setTotalPages(1); // Solo una página con todos los resultados
+                    setTotalElements(productosFormateados.length);
+                } else {
+                    // Si no hay búsqueda, usar endpoint paginado normal
+                    const response = await http.get<PaginatedResponse>(
+                        `/producto/paginated?page=${currentPage}&size=${ITEMS_PER_PAGE}`
+                    );
 
-    // Resetear a página 1 cuando cambian los filtros
+                    // Transformar los datos del backend al formato del frontend
+                    const productosFormateados: Product[] = (response.data.content || []).map(producto => ({
+                        id: String(producto.id),
+                        name: producto.nombre,
+                        barcode: producto.sku,
+                        price: producto.precio,
+                        stock: producto.stock,
+                        status: getProductStatus(producto.stock)
+                    }));
+
+                    setProducts(productosFormateados);
+                    setTotalPages(response.data.totalPages);
+                    setTotalElements(response.data.totalElements);
+                }
+            } catch (err: any) {
+                setError('Error al cargar los productos');
+                setProducts([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProductos();
+    }, [currentPage, activeSearch]); // Se ejecuta cuando cambia la página o la búsqueda activa
+
+    // Cargar estadísticas desde el backend
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await http.get<StatsResponse>('/producto/stats');
+                setTotalProductsFromServer(response.data.totalProductos);
+                setLowStockProducts(response.data.productosStockBajo);
+                setOutOfStockProducts(response.data.productosSinStock);
+                setTotalValue(response.data.valorTotalInventario);
+            } catch (err: any) {
+                // Si falla, mantener valores en 0
+                setTotalProductsFromServer(0);
+                setLowStockProducts(0);
+                setOutOfStockProducts(0);
+                setTotalValue(0);
+            }
+        };
+
+        fetchStats();
+    }, [currentPage]); // Recargar estadísticas cuando cambia la página (por si se agregó/editó algo)
+
+
+
+    // Función para ejecutar la búsqueda (al presionar Enter)
+    const handleSearch = () => {
+        setActiveSearch(searchTerm);
+        setCurrentPage(1); // Volver a la primera página al buscar
+    };
+
+    // Limpiar búsqueda cuando se borra el texto
+    useEffect(() => {
+        if (searchTerm === '') {
+            setActiveSearch('');
+            setCurrentPage(1);
+        }
+    }, [searchTerm]);
+
+    // Resetear a página 1 cuando cambia el filtro de estado
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, statusFilter]);
+    }, [statusFilter]);
 
     const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
-        setIsLoading(true);
         setCurrentPage(page);
-
-        // Simular carga de datos (animación)
-        setTimeout(() => {
-            setIsLoading(false);
-            // Scroll suave hacia arriba
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 500); // 500ms de animación de carga
+        // Scroll suave hacia arriba
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleEdit = (product: Product) => {
@@ -107,13 +188,10 @@ const StockContent = () => {
         }));
     };
 
-    const handleAdd = (newProductData: Omit<Product, 'id'>) => {
-        const newProduct: Product = {
-            ...newProductData,
-            id: `P-${String(products.length + 1).padStart(3, '0')}`,
-            status: getProductStatus(newProductData.stock)
-        };
-        setProducts([...products, newProduct]);
+    const handleAdd = () => {
+        // Volver a la página 1 para ver el producto agregado
+        // El useEffect se encargará de recargar los datos
+        setCurrentPage(1);
     };
 
     const handleCloseEditModal = () => {
@@ -158,18 +236,25 @@ const StockContent = () => {
             </Box>
 
             {/* Stats */}
+            {/* Stats */}
             <StockStats
-                totalProducts={totalProducts}
+                totalProducts={totalProductsFromServer}
                 lowStockProducts={lowStockProducts}
+                outOfStockProducts={outOfStockProducts}
                 totalValue={totalValue}
             />
 
             {/* Filters and Search */}
             <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
                 <TextField
-                    placeholder="Buscar por nombre o código de barra..."
+                    placeholder="Buscar por nombre o SKU..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            handleSearch();
+                        }
+                    }}
                     sx={{ flex: 1 }}
                     InputProps={{
                         startAdornment: <MdSearch size={20} style={{ marginRight: 8, color: '#64748b' }} />,
@@ -191,9 +276,12 @@ const StockContent = () => {
             </Box>
 
             {/* Products Table */}
-            <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a', mb: 3 }}>
-                Lista de Productos ({filteredProducts.length})
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, mb: 3 }}>
+                <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a' }}>
+                    Lista de Productos ({products.length})
+                </Typography>
+
+            </Box>
 
             {/* Loading Animation */}
             {isLoading ? (
@@ -212,10 +300,35 @@ const StockContent = () => {
                         Cargando productos...
                     </Typography>
                 </Box>
+            ) : error ? (
+                <Box
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        minHeight: 400,
+                        flexDirection: 'column',
+                        gap: 2
+                    }}
+                >
+                    <Typography variant="h6" color="error">
+                        {error}
+                    </Typography>
+                    <Button
+                        variant="contained"
+                        onClick={() => window.location.reload()}
+                        sx={{
+                            bgcolor: '#0f172a',
+                            '&:hover': { bgcolor: '#1e293b' }
+                        }}
+                    >
+                        Reintentar
+                    </Button>
+                </Box>
             ) : (
                 <>
                     <ProductTable
-                        products={paginatedProducts}
+                        products={products}
                         onEdit={handleEdit}
                     />
 

@@ -59,7 +59,7 @@ const PrincipalContent = () => {
                 Análisis de Ventas
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' }, gap: 3, mb: 5 }}>
-                <SalesByHourChart sales={mockSales} />
+                <SalesByHourChart />
                 <RevenueByPaymentMethodChart sales={mockSales} />
             </Box>
 
