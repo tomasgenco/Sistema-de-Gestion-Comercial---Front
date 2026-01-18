@@ -33,8 +33,14 @@ const SalesSearchTable = ({ sales }: SalesSearchTableProps) => {
         setExpandedRows(newExpanded);
     };
 
+    // Función para normalizar el método de pago del backend
+    const normalizePaymentMethod = (method: string): string => {
+        return method.toLowerCase().replace(/[_\s]+/g, '');
+    };
+
     const getPaymentMethodColor = (method: string) => {
-        switch (method) {
+        const normalized = normalizePaymentMethod(method);
+        switch (normalized) {
             case 'efectivo':
                 return { bg: '#dcfce7', color: '#16a34a' };
             case 'mercadopago':
@@ -51,7 +57,8 @@ const SalesSearchTable = ({ sales }: SalesSearchTableProps) => {
     };
 
     const getPaymentMethodLabel = (method: string) => {
-        switch (method) {
+        const normalized = normalizePaymentMethod(method);
+        switch (normalized) {
             case 'efectivo':
                 return 'Efectivo';
             case 'mercadopago':

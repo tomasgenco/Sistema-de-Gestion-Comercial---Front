@@ -65,46 +65,47 @@ const RecentSalesTable = () => {
     };
 
 
+    // Función para normalizar el método de pago del backend
+    const normalizePaymentMethod = (method: string): string => {
+        return method.toLowerCase().replace(/[_\s]+/g, '');
+    };
+
     // Función para normalizar el nombre del método de pago
     const getPaymentMethodLabel = (method: string) => {
-        // Normalizar a minúsculas y quitar espacios/guiones bajos
-        const methodLower = method.toLowerCase().replace(/[_\s]+/g, '');
-
-        if (methodLower.includes('efectivo')) {
-            return 'Efectivo';
-        } else if (methodLower.includes('mercadopago')) {
-            return 'Mercado Pago';
-        } else if (methodLower.includes('cuentadni')) {
-            return 'Cuenta DNI';
-        } else if (methodLower.includes('tarjetacredito') || (methodLower.includes('tarjeta') && methodLower.includes('credito'))) {
-            return 'Tarjeta Crédito';
-        } else if (methodLower.includes('tarjetadebito') || (methodLower.includes('tarjeta') && methodLower.includes('debito'))) {
-            return 'Tarjeta Débito';
-        } else if (methodLower.includes('transferencia')) {
-            return 'Transferencia';
+        const normalized = normalizePaymentMethod(method);
+        switch (normalized) {
+            case 'efectivo':
+                return 'Efectivo';
+            case 'mercadopago':
+                return 'Mercado Pago';
+            case 'cuentadni':
+                return 'Cuenta DNI';
+            case 'tarjetacredito':
+                return 'Tarjeta Crédito';
+            case 'tarjetadebito':
+                return 'Tarjeta Débito';
+            default:
+                return method;
         }
-        return method; // Fallback al valor original si no coincide
     };
 
     // Función para obtener el color del chip según el método de pago
     const getPaymentMethodColor = (method: string) => {
-        // Normalizar a minúsculas y quitar espacios para consistencia
-        const methodLower = method.toLowerCase().replace(/\s+/g, '');
-
-        if (methodLower.includes('efectivo')) {
-            return { bgcolor: '#dcfce7', color: '#16a34a' };
-        } else if (methodLower.includes('mercadopago')) {
-            return { bgcolor: '#dbeafe', color: '#2563eb' };
-        } else if (methodLower.includes('cuentadni')) {
-            return { bgcolor: '#fef3c7', color: '#d97706' };
-        } else if (methodLower.includes('tarjetacredito') || (methodLower.includes('tarjeta') && methodLower.includes('credito'))) {
-            return { bgcolor: '#fce7f3', color: '#db2777' };
-        } else if (methodLower.includes('tarjetadebito') || (methodLower.includes('tarjeta') && methodLower.includes('debito'))) {
-            return { bgcolor: '#e0e7ff', color: '#6366f1' };
-        } else if (methodLower.includes('transferencia')) {
-            return { bgcolor: '#e9d5ff', color: '#6b21a8' };
+        const normalized = normalizePaymentMethod(method);
+        switch (normalized) {
+            case 'efectivo':
+                return { bg: '#dcfce7', color: '#16a34a' };
+            case 'mercadopago':
+                return { bg: '#dbeafe', color: '#2563eb' };
+            case 'cuentadni':
+                return { bg: '#fef3c7', color: '#d97706' };
+            case 'tarjetacredito':
+                return { bg: '#fce7f3', color: '#db2777' };
+            case 'tarjetadebito':
+                return { bg: '#e0e7ff', color: '#6366f1' };
+            default:
+                return { bg: '#f1f5f9', color: '#64748b' };
         }
-        return { bgcolor: '#f1f5f9', color: '#64748b' };
     };
 
     return (
@@ -156,7 +157,8 @@ const RecentSalesTable = () => {
                                                 label={getPaymentMethodLabel(venta.metodoPago)}
                                                 size="small"
                                                 sx={{
-                                                    ...paymentColors,
+                                                    bgcolor: paymentColors.bg,
+                                                    color: paymentColors.color,
                                                     fontWeight: 600,
                                                     borderRadius: 2
                                                 }}

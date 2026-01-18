@@ -28,7 +28,6 @@ http.interceptors.response.use(
                 return http(originalRequest);
             } catch (refreshError) {
                 // Si el refresh falla, redirigir al login
-                console.error('Token refresh failed, redirecting to login...');
                 window.location.href = '/';
                 return Promise.reject(refreshError);
             }

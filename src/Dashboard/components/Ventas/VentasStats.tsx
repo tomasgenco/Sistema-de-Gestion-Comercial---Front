@@ -1,14 +1,13 @@
 import { Box, Paper, Typography } from '@mui/material';
-import { MdShoppingCart, MdAttachMoney, MdTrendingUp, MdToday } from 'react-icons/md';
+import { MdAttachMoney, MdTrendingUp, MdToday } from 'react-icons/md';
 
 interface VentasStatsProps {
     todayCount: number;
     todayTotal: number;
-    totalSales: number;
     averageSale: number;
 }
 
-const VentasStats = ({ todayCount, todayTotal, totalSales, averageSale }: VentasStatsProps) => {
+const VentasStats = ({ todayCount, todayTotal, averageSale }: VentasStatsProps) => {
     const stats = [
         {
             title: 'Ventas del Día',
@@ -25,14 +24,6 @@ const VentasStats = ({ todayCount, todayTotal, totalSales, averageSale }: Ventas
             color: '#10b981',
             bgColor: '#d1fae5',
             format: 'currency'
-        },
-        {
-            title: 'Total Ventas',
-            value: totalSales,
-            icon: MdShoppingCart,
-            color: '#f59e0b',
-            bgColor: '#fef3c7',
-            format: 'number'
         },
         {
             title: 'Promedio por Venta',

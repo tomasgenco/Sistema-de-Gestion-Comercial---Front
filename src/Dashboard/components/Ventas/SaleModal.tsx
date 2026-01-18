@@ -65,6 +65,9 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'warning' | 'info'>('info');
 
+    // Estado para el monto recibido en efectivo
+    const [cashReceived, setCashReceived] = useState<string>('');
+
     const showSnackbar = (message: string, severity: 'success' | 'error' | 'warning' | 'info' = 'info') => {
         setSnackbarMessage(message);
         setSnackbarSeverity(severity);
@@ -89,6 +92,7 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
             setPaymentMethod('efectivo');
             setConfirmModalOpen(false);
             setError(null);
+            setCashReceived('');
         }
     }, [open]);
 
@@ -565,9 +569,73 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                             </Typography>
                         </Box>
                     )}
-                    <Typography variant="body1" color="text.secondary">
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
                         ¿Está seguro que desea guardar esta venta por un total de <strong>${calculateTotal().toLocaleString('es-AR')}</strong>?
                     </Typography>
+
+                    {/* Input para efectivo recibido */}
+                    {paymentMethod === 'efectivo' && (
+                        <Box sx={{ mt: 3, p: 2, bgcolor: '#f0fdf4', borderRadius: 2, border: '1px solid #bbf7d0' }}>
+                            <TextField
+                                label="Monto Recibido"
+                                type="number"
+                                value={cashReceived}
+                                onChange={(e) => setCashReceived(e.target.value)}
+                                fullWidth
+                                autoFocus
+                                placeholder="Ingrese el monto con el que paga"
+                                InputProps={{
+                                    startAdornment: <Typography sx={{ mr: 1, color: '#64748b' }}>$</Typography>
+                                }}
+                                sx={{
+                                    mb: 2,
+                                    '& input[type=number]': {
+                                        MozAppearance: 'textfield'
+                                    },
+                                    '& input[type=number]::-webkit-outer-spin-button': {
+                                        WebkitAppearance: 'none',
+                                        margin: 0
+                                    },
+                                    '& input[type=number]::-webkit-inner-spin-button': {
+                                        WebkitAppearance: 'none',
+                                        margin: 0
+                                    }
+                                }}
+                            />
+
+                            {cashReceived && parseFloat(cashReceived) >= calculateTotal() && (
+                                <Box sx={{
+                                    p: 2,
+                                    bgcolor: '#dcfce7',
+                                    borderRadius: 2,
+                                    border: '2px solid #16a34a'
+                                }}>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                        Vuelto a devolver:
+                                    </Typography>
+                                    <Typography variant="h5" fontWeight="bold" sx={{ color: '#16a34a' }}>
+                                        ${(parseFloat(cashReceived) - calculateTotal()).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </Typography>
+                                </Box>
+                            )}
+
+                            {cashReceived && parseFloat(cashReceived) < calculateTotal() && (
+                                <Box sx={{
+                                    p: 2,
+                                    bgcolor: '#fee2e2',
+                                    borderRadius: 2,
+                                    border: '2px solid #ef4444'
+                                }}>
+                                    <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 600 }}>
+                                        El monto recibido es insuficiente
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#dc2626' }}>
+                                        Faltan: ${(calculateTotal() - parseFloat(cashReceived)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Box>
+                    )}
                 </DialogContent>
                 <DialogActions sx={{ gap: 1, p: 2 }}>
                     <Button
@@ -581,7 +649,10 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                     <Button
                         onClick={handleConfirmSave}
                         variant="contained"
-                        disabled={isLoading}
+                        disabled={
+                            isLoading ||
+                            (paymentMethod === 'efectivo' && (!cashReceived || parseFloat(cashReceived) < calculateTotal()))
+                        }
                         startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
                         sx={{
                             bgcolor: '#10b981',

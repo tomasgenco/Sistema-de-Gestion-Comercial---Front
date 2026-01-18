@@ -12,13 +12,15 @@ interface SidebarProps {
 const Sidebar = ({ activeModule, onModuleChange }: SidebarProps) => {
     const navigate = useNavigate();
     const [userRole, setUserRole] = useState('Usuario');
+    const [rawRole, setRawRole] = useState(''); // Rol sin formatear para comparaciones
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
     useEffect(() => {
         // Obtener el rol del usuario desde localStorage
         const role = localStorage.getItem('userRole') || 'Usuario';
+        setRawRole(role.toUpperCase()); // Guardar el rol en mayúsculas para comparaciones
 
-        // Capitalizar primera letra
+        // Capitalizar primera letra para mostrar
         const formattedRole = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
         setUserRole(formattedRole);
     }, []);
@@ -76,20 +78,18 @@ const Sidebar = ({ activeModule, onModuleChange }: SidebarProps) => {
                     MENU PRINCIPAL
                 </Typography>
 
-                <SidebarItem
-                    icon={MdDashboard}
-                    label="Principal"
-                    description="Visión general"
-                    active={activeModule === 'Principal'}
-                    onClick={() => onModuleChange('Principal')}
-                />
-                <SidebarItem
-                    icon={MdInventory}
-                    label="Stock"
-                    description="Gestión de inventario"
-                    active={activeModule === 'Stock'}
-                    onClick={() => onModuleChange('Stock')}
-                />
+                {/* Principal - Solo visible para admins */}
+                {rawRole !== 'VENDEDOR' && (
+                    <SidebarItem
+                        icon={MdDashboard}
+                        label="Principal"
+                        description="Visión general"
+                        active={activeModule === 'Principal'}
+                        onClick={() => onModuleChange('Principal')}
+                    />
+                )}
+
+                {/* Ventas - Visible para todos */}
                 <SidebarItem
                     icon={MdPointOfSale}
                     label="Ventas"
@@ -97,6 +97,19 @@ const Sidebar = ({ activeModule, onModuleChange }: SidebarProps) => {
                     active={activeModule === 'Ventas'}
                     onClick={() => onModuleChange('Ventas')}
                 />
+
+                {/* Stock - Solo visible para admins */}
+                {rawRole !== 'VENDEDOR' && (
+                    <SidebarItem
+                        icon={MdInventory}
+                        label="Stock"
+                        description="Gestión de inventario"
+                        active={activeModule === 'Stock'}
+                        onClick={() => onModuleChange('Stock')}
+                    />
+                )}
+
+                {/* Proveedores - Visible para todos */}
                 <SidebarItem
                     icon={MdPeople}
                     label="Proveedores"

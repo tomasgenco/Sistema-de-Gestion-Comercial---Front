@@ -16,70 +16,101 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Paper
+    Paper,
+    CircularProgress,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel
 } from '@mui/material';
 import { MdClose, MdSearch, MdAdd, MdRemove, MdDelete } from 'react-icons/md';
-import type { Provider, Purchase, PurchaseItem } from './ProveedoresContent';
+import type { Provider, PurchaseItem } from './ProveedoresContent';
+import { http } from '../../../shared/api/http';
 
 interface PurchaseModalProps {
     open: boolean;
     provider: Provider | null;
     onClose: () => void;
-    onSave: (purchase: Omit<Purchase, 'id'>) => void;
+    onSave: () => void; // Ya no recibe argumentos, solo notifica que se guardó
 }
 
-// Mock products (mismos que en Stock)
-const mockProducts = [
-    { id: 'P-001', name: 'Laptop Dell XPS 15', barcode: '7891234567890', price: 1250000, stock: 15 },
-    { id: 'P-002', name: 'Mouse Logitech MX Master', barcode: '7891234567891', price: 85000, stock: 45 },
-    { id: 'P-003', name: 'Teclado Mecánico RGB', barcode: '7891234567892', price: 120000, stock: 3 },
-    { id: 'P-004', name: 'Monitor Samsung 27"', barcode: '7891234567893', price: 350000, stock: 0 },
-    { id: 'P-005', name: 'Webcam Logitech C920', barcode: '7891234567894', price: 95000, stock: 22 },
-    { id: 'P-006', name: 'Auriculares Sony WH-1000XM4', barcode: '7891234567895', price: 280000, stock: 12 },
-    { id: 'P-007', name: 'SSD Samsung 1TB', barcode: '7891234567896', price: 125000, stock: 5 },
-    { id: 'P-008', name: 'RAM Corsair 16GB', barcode: '7891234567897', price: 75000, stock: 30 },
-    { id: 'P-009', name: 'Procesador Intel i7', barcode: '7891234567898', price: 450000, stock: 8 },
-    { id: 'P-010', name: 'Placa de Video RTX 3060', barcode: '7891234567899', price: 650000, stock: 4 },
-];
+// Tipo de dato que viene del backend
+interface ProductoAPI {
+    id: number;
+    nombre: string;
+    precio: number;
+    sku: string;
+    stock: number;
+}
 
 const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) => {
     const [items, setItems] = useState<PurchaseItem[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(''); // Valor del input
+    const [searchResults, setSearchResults] = useState<ProductoAPI[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
     const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<'EFECTIVO' | 'MERCADO_PAGO' | 'CUENTA_DNI' | 'TARJETA_CREDITO' | 'TARJETA_DEBITO'>('EFECTIVO');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Mapa para guardar SKU de productos agregados
+    const [productSkuMap, setProductSkuMap] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (open) {
             setItems([]);
             setSearchTerm('');
+            setSearchResults([]);
             setConfirmModalOpen(false);
+            setPaymentMethod('EFECTIVO');
+            setError(null);
+            setProductSkuMap({});
         }
     }, [open]);
+
+    // Cargar sugerencias automáticamente al escribir (con debounce)
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (searchTerm.trim().length > 1) {
+                try {
+                    setIsSearching(true);
+                    const response = await http.get<ProductoAPI[]>(
+                        `/producto/search?q=${encodeURIComponent(searchTerm)}`
+                    );
+                    const dataArray = Array.isArray(response.data) ? response.data : [];
+                    setSearchResults(dataArray);
+                } catch (err) {
+                    setSearchResults([]);
+                } finally {
+                    setIsSearching(false);
+                }
+            } else {
+                setSearchResults([]);
+            }
+        }, 300); // Debounce de 300ms
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
     const handleSearchKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            handleAddProduct();
+            // Si hay resultados, agregar el primero
+            if (searchResults.length > 0) {
+                addProductToPurchase(searchResults[0]);
+            }
         }
     };
 
-    const handleAddProduct = () => {
-        if (!searchTerm.trim()) return;
+    const addProductToPurchase = (product: ProductoAPI) => {
+        const productId = String(product.id);
+        const existingItemIndex = items.findIndex(item => item.productId === productId);
 
-        const product = mockProducts.find(p =>
-            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.barcode === searchTerm.trim()
-        );
-
-        if (product) {
-            addProductToPurchase(product);
-            setSearchTerm('');
-        } else {
-            alert('Producto no encontrado');
-        }
-    };
-
-    const addProductToPurchase = (product: typeof mockProducts[0]) => {
-        const existingItemIndex = items.findIndex(item => item.productId === product.id);
+        // Guardar el SKU del producto
+        setProductSkuMap(prev => ({
+            ...prev,
+            [productId]: product.sku
+        }));
 
         if (existingItemIndex >= 0) {
             const newItems = [...items];
@@ -88,14 +119,18 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
             setItems(newItems);
         } else {
             const newItem: PurchaseItem = {
-                productId: product.id,
-                productName: product.name,
+                productId: productId,
+                productName: product.nombre,
                 quantity: 1,
-                unitPrice: product.price,
-                total: product.price
+                unitPrice: product.precio,
+                total: product.precio
             };
             setItems([...items, newItem]);
         }
+
+        // Limpiar búsqueda después de agregar
+        setSearchTerm('');
+        setSearchResults([]);
     };
 
     const handleQuantityChange = (productId: string, newQuantity: number) => {
@@ -131,21 +166,40 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
         setConfirmModalOpen(true);
     };
 
-    const handleConfirmSave = () => {
+    const handleConfirmSave = async () => {
         if (!provider) return;
 
-        const purchase: Omit<Purchase, 'id'> = {
-            providerId: provider.id,
-            providerName: provider.name,
-            date: new Date().toISOString(),
-            total: calculateTotal(),
-            items,
-            status: 'completed'
-        };
+        try {
+            setIsLoading(true);
+            setError(null);
 
-        onSave(purchase);
-        setConfirmModalOpen(false);
-        onClose();
+            // Preparar datos en el formato del backend
+            const compraData = {
+                metodoPago: paymentMethod,
+                proveedorId: provider.id,
+                items: items.map(item => ({
+                    cantidad: item.quantity,
+                    precioUnitario: item.unitPrice,
+                    nombreProducto: item.productName,
+                    sku: productSkuMap[item.productId] || ''
+                }))
+            };
+
+            // Enviar al backend
+            await http.post(`/compras/proveedor/${provider.id}`, compraData);
+
+            // Cerrar modales
+            setConfirmModalOpen(false);
+            onClose();
+
+            // Notificar al padre para recargar los datos del módulo
+            onSave();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Error al guardar la compra');
+            setConfirmModalOpen(false);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     if (!provider) return null;
@@ -175,7 +229,7 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                             Nueva Compra
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            Proveedor: {provider.name}
+                            Proveedor: {provider.nombreEmpresa}
                         </Typography>
                     </Box>
                     <IconButton onClick={onClose} size="small">
@@ -191,89 +245,76 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                         </Typography>
 
                         <Box sx={{ display: 'flex', gap: 2, position: 'relative', flexDirection: 'column' }}>
-                            <Box sx={{ display: 'flex', gap: 2 }}>
-                                <TextField
-                                    label="Nombre o Código de Barras"
-                                    placeholder="Buscar producto..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onKeyPress={handleSearchKeyPress}
-                                    fullWidth
-                                    InputProps={{
-                                        startAdornment: <MdSearch size={20} style={{ marginRight: 8, color: '#64748b' }} />
-                                    }}
-                                />
-                                <Button
-                                    variant="outlined"
-                                    onClick={handleAddProduct}
-                                    sx={{ minWidth: 120 }}
-                                >
-                                    Agregar
-                                </Button>
-                            </Box>
+                            <TextField
+                                label="Nombre o SKU"
+                                placeholder="Buscar producto..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onKeyDown={handleSearchKeyPress}
+                                fullWidth
+                                InputProps={{
+                                    startAdornment: <MdSearch size={20} style={{ marginRight: 8, color: '#64748b' }} />,
+                                }}
+                                helperText="Escribe para buscar automáticamente"
+                            />
+
+                            {/* Indicador de carga */}
+                            {isSearching && (
+                                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                                    <CircularProgress size={24} />
+                                </Box>
+                            )}
 
                             {/* Sugerencias en tiempo real */}
-                            {searchTerm.trim().length > 0 && (
+                            {!isSearching && searchResults.length > 0 && (
                                 <Box
                                     sx={{
+                                        position: 'absolute',
+                                        top: '100%',
+                                        left: 0,
+                                        right: 0,
+                                        zIndex: 10,
                                         bgcolor: 'white',
                                         border: '1px solid #e2e8f0',
                                         borderRadius: 2,
-                                        maxHeight: 200,
+                                        maxHeight: 250,
                                         overflow: 'auto',
-                                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
                                     }}
                                 >
-                                    {mockProducts
-                                        .filter(p =>
-                                            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            p.barcode.includes(searchTerm)
-                                        )
-                                        .slice(0, 5)
-                                        .map((product) => (
-                                            <Box
-                                                key={product.id}
-                                                onClick={() => {
-                                                    addProductToPurchase(product);
-                                                    setSearchTerm('');
-                                                }}
-                                                sx={{
-                                                    p: 2,
-                                                    cursor: 'pointer',
-                                                    borderBottom: '1px solid #f1f5f9',
-                                                    '&:hover': {
-                                                        bgcolor: '#f8fafc'
-                                                    },
-                                                    '&:last-child': {
-                                                        borderBottom: 'none'
-                                                    }
-                                                }}
-                                            >
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <Box>
-                                                        <Typography variant="body2" fontWeight={600}>
-                                                            {product.name}
-                                                        </Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            ID: {product.id} | Stock actual: {product.stock}
-                                                        </Typography>
-                                                    </Box>
-                                                    <Typography variant="body2" fontWeight={700} sx={{ color: '#0f172a' }}>
-                                                        ${product.price.toLocaleString('es-AR')}
+                                    {searchResults.map((product) => (
+                                        <Box
+                                            key={product.id}
+                                            onClick={() => {
+                                                addProductToPurchase(product);
+                                            }}
+                                            sx={{
+                                                p: 2,
+                                                cursor: 'pointer',
+                                                borderBottom: '1px solid #f1f5f9',
+                                                '&:hover': {
+                                                    bgcolor: '#f8fafc'
+                                                },
+                                                '&:last-child': {
+                                                    borderBottom: 'none'
+                                                }
+                                            }}
+                                        >
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Box>
+                                                    <Typography variant="body2" fontWeight={600}>
+                                                        {product.nombre}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        SKU: {product.sku} | Stock actual: {product.stock}
                                                     </Typography>
                                                 </Box>
-                                            </Box>
-                                        ))}
-                                    {mockProducts.filter(p =>
-                                        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        p.barcode.includes(searchTerm)
-                                    ).length === 0 && (
-                                            <Box sx={{ p: 2, textAlign: 'center' }}>
-                                                <Typography variant="body2" color="text.secondary">
-                                                    No se encontraron productos
+                                                <Typography variant="body2" fontWeight={700} sx={{ color: '#0f172a' }}>
+                                                    ${product.precio.toLocaleString('es-AR')}
                                                 </Typography>
                                             </Box>
-                                        )}
+                                        </Box>
+                                    ))}
                                 </Box>
                             )}
                         </Box>
@@ -401,16 +442,31 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                         )}
                     </Box>
 
-                    {/* Total */}
+                    {/* Total y método de pago */}
                     <Box sx={{
                         display: 'flex',
-                        justifyContent: 'flex-end',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
                         bgcolor: '#f8fafc',
                         p: 3,
                         borderRadius: 3,
                         border: '2px solid #e2e8f0'
                     }}>
+                        <FormControl sx={{ minWidth: 200 }}>
+                            <InputLabel>Método de Pago</InputLabel>
+                            <Select
+                                value={paymentMethod}
+                                label="Método de Pago"
+                                onChange={(e) => setPaymentMethod(e.target.value as any)}
+                            >
+                                <MenuItem value="EFECTIVO">Efectivo</MenuItem>
+                                <MenuItem value="MERCADO_PAGO">Mercado Pago</MenuItem>
+                                <MenuItem value="CUENTA_DNI">Cuenta DNI</MenuItem>
+                                <MenuItem value="TARJETA_CREDITO">Tarjeta Crédito</MenuItem>
+                                <MenuItem value="TARJETA_DEBITO">Tarjeta Débito</MenuItem>
+                            </Select>
+                        </FormControl>
+
                         <Box sx={{ textAlign: 'right' }}>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                                 Total de la Compra
@@ -420,6 +476,15 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                             </Typography>
                         </Box>
                     </Box>
+
+                    {/* Mensaje de error */}
+                    {error && (
+                        <Box sx={{ mt: 2, p: 2, bgcolor: '#fee2e2', borderRadius: 2, border: '1px solid #ef4444' }}>
+                            <Typography variant="body2" color="error">
+                                {error}
+                            </Typography>
+                        </Box>
+                    )}
                 </DialogContent>
 
                 <DialogActions sx={{ p: 3, gap: 2 }}>
@@ -438,7 +503,8 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                     <Button
                         onClick={handleSaveClick}
                         variant="contained"
-                        disabled={items.length === 0}
+                        disabled={items.length === 0 || isLoading}
+                        startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
                         sx={{
                             bgcolor: '#0f172a',
                             borderRadius: 2,
@@ -450,7 +516,7 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                             }
                         }}
                     >
-                        Cargar Compra
+                        {isLoading ? 'Guardando...' : 'Cargar Compra'}
                     </Button>
                 </DialogActions>
             </Dialog>

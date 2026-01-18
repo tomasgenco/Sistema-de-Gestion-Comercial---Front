@@ -69,7 +69,6 @@ const VentasContent = () => {
     const [saleModalOpen, setSaleModalOpen] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
-    const [totalElements, setTotalElements] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -87,10 +86,10 @@ const VentasContent = () => {
     const convertPaymentMethodToBackend = (method: string): string => {
         const map: Record<string, string> = {
             'efectivo': 'EFECTIVO',
-            'mercadopago': 'MERCADO_PAGO',
-            'cuentadni': 'CUENTA_DNI',
-            'tarjetacredito': 'TARJETA_CREDITO',
-            'tarjetadebito': 'TARJETA_DEBITO'
+            'mercadopago': 'MERCADO PAGO',
+            'cuentadni': 'CUENTA DNI',
+            'tarjetacredito': 'TARJETA CREDITO',
+            'tarjetadebito': 'TARJETA DEBITO'
         };
         return map[method] || method;
     };
@@ -104,7 +103,6 @@ const VentasContent = () => {
 
                 let ventasFormateadas: Sale[] = [];
                 let totalPagesResult = 0;
-                let totalElementsResult = 0;
 
                 // Si hay búsqueda activa
                 if (isSearchActive && (activePaymentMethod || activeSearchDate)) {
@@ -138,7 +136,6 @@ const VentasContent = () => {
                     const endIndex = startIndex + ITEMS_PER_PAGE;
                     ventasFormateadas = allVentas.slice(startIndex, endIndex);
                     totalPagesResult = Math.ceil(allVentas.length / ITEMS_PER_PAGE);
-                    totalElementsResult = allVentas.length;
                 } else {
                     // Sin búsqueda, usar paginación normal
                     const response = await http.get<PaginatedResponse>(
@@ -160,12 +157,10 @@ const VentasContent = () => {
                     }));
 
                     totalPagesResult = response.data.totalPages;
-                    totalElementsResult = response.data.totalElements;
                 }
 
                 setSales(ventasFormateadas);
                 setTotalPages(totalPagesResult);
-                setTotalElements(totalElementsResult);
             } catch (err: any) {
                 setError('Error al cargar las ventas');
                 setSales([]);
@@ -180,7 +175,6 @@ const VentasContent = () => {
     // Estados para estadísticas
     const [todayCount, setTodayCount] = useState(0);
     const [todayTotal, setTodayTotal] = useState(0);
-    const [totalSales, setTotalSales] = useState(0);
     const [averageSale, setAverageSale] = useState(0);
 
     // Cargar estadísticas desde el backend
@@ -196,13 +190,11 @@ const VentasContent = () => {
 
                 setTodayCount(response.data.ventasDelDia);
                 setTodayTotal(response.data.ingresosTotalesDelDia);
-                setTotalSales(response.data.ventasDelMes);
-                setAverageSale(response.data.ventasDelMes > 0 ? response.data.ingresosTotalesDelDia / response.data.ventasDelMes : 0);
+                setAverageSale(response.data.ventasDelMes > 0 ? response.data.ingresosTotalesDelDia / response.data.ventasDelDia : 0); //promedio del dia
             } catch (err: any) {
                 // Si falla, mantener valores en 0
                 setTodayCount(0);
                 setTodayTotal(0);
-                setTotalSales(0);
                 setAverageSale(0);
             }
         };
@@ -260,7 +252,6 @@ const VentasContent = () => {
             <VentasStats
                 todayCount={todayCount}
                 todayTotal={todayTotal}
-                totalSales={totalSales}
                 averageSale={averageSale}
             />
 

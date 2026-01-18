@@ -18,13 +18,13 @@ const ProviderCard = ({ provider, onInitiatePurchase, onEdit }: ProviderCardProp
         });
     };
 
-    const getStatusColor = (status: string) => {
-        return status === 'active'
+    const getStatusColor = (activo: boolean) => {
+        return activo
             ? { bg: '#dcfce7', color: '#16a34a' }
             : { bg: '#fee2e2', color: '#dc2626' };
     };
 
-    const statusColors = getStatusColor(provider.status);
+    const statusColors = getStatusColor(provider.activo);
 
     return (
         <Paper
@@ -48,7 +48,7 @@ const ProviderCard = ({ provider, onInitiatePurchase, onEdit }: ProviderCardProp
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                 <Box sx={{ flex: 1 }}>
                     <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a', mb: 0.5 }}>
-                        {provider.name}
+                        {provider.nombreEmpresa}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                         {provider.id}
@@ -56,7 +56,7 @@ const ProviderCard = ({ provider, onInitiatePurchase, onEdit }: ProviderCardProp
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                     <Chip
-                        label={provider.status === 'active' ? 'Activo' : 'Inactivo'}
+                        label={provider.activo ? 'Activo' : 'Inactivo'}
                         size="small"
                         sx={{
                             bgcolor: statusColors.bg,
@@ -87,7 +87,7 @@ const ProviderCard = ({ provider, onInitiatePurchase, onEdit }: ProviderCardProp
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                     <MdBusiness size={16} color="#64748b" />
                     <Typography variant="body2" color="text.secondary">
-                        {provider.contact}
+                        {provider.personaContacto}
                     </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
@@ -99,13 +99,13 @@ const ProviderCard = ({ provider, onInitiatePurchase, onEdit }: ProviderCardProp
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                     <MdPhone size={16} color="#64748b" />
                     <Typography variant="body2" color="text.secondary">
-                        {provider.phone}
+                        {provider.telefono}
                     </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                     <MdLocationOn size={16} color="#64748b" style={{ marginTop: 2 }} />
                     <Typography variant="body2" color="text.secondary">
-                        {provider.address}
+                        {provider.direccion}
                     </Typography>
                 </Box>
             </Box>
@@ -123,7 +123,7 @@ const ProviderCard = ({ provider, onInitiatePurchase, onEdit }: ProviderCardProp
                         Total Compras:
                     </Typography>
                     <Typography variant="body2" fontWeight={700} sx={{ color: '#0f172a' }}>
-                        ${provider.totalPurchases.toLocaleString('es-AR')}
+                        ${provider.totalCompras.toLocaleString('es-AR')}
                     </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -131,30 +131,40 @@ const ProviderCard = ({ provider, onInitiatePurchase, onEdit }: ProviderCardProp
                         Última Compra:
                     </Typography>
                     <Typography variant="caption" fontWeight={600} sx={{ color: '#64748b' }}>
-                        {formatDate(provider.lastPurchaseDate)}
+                        {provider.ultimaCompra ? formatDate(provider.ultimaCompra) : 'N/A'}
                     </Typography>
                 </Box>
             </Box>
 
             {/* Actions */}
-            <Button
-                variant="contained"
-                fullWidth
-                startIcon={<MdShoppingCart size={18} />}
-                onClick={() => onInitiatePurchase(provider)}
-                sx={{
-                    bgcolor: '#0f172a',
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    py: 1.2,
-                    '&:hover': {
-                        bgcolor: '#1e293b'
-                    }
-                }}
-            >
-                Iniciar Compra
-            </Button>
+            {/* Actions */}
+            <Tooltip title={!provider.activo ? "El proveedor debe estar activo para registrar una compra" : ""}>
+                <Box>
+                    <Button
+                        variant="contained"
+                        fullWidth
+                        startIcon={<MdShoppingCart size={18} />}
+                        onClick={() => onInitiatePurchase(provider)}
+                        disabled={!provider.activo}
+                        sx={{
+                            bgcolor: '#0f172a',
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            py: 1.2,
+                            '&:hover': {
+                                bgcolor: '#1e293b'
+                            },
+                            '&.Mui-disabled': {
+                                bgcolor: '#e2e8f0',
+                                color: '#94a3b8'
+                            }
+                        }}
+                    >
+                        Iniciar Compra
+                    </Button>
+                </Box>
+            </Tooltip>
         </Paper>
     );
 };

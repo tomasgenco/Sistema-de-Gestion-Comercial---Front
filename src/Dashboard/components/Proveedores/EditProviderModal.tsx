@@ -12,10 +12,13 @@ import {
     MenuItem,
     FormControl,
     InputLabel,
-    Grid
+    Grid,
+    CircularProgress,
+    Alert
 } from '@mui/material';
 import { MdClose } from 'react-icons/md';
 import type { Provider } from './ProveedoresContent';
+import { http } from '../../../shared/api/http';
 
 interface EditProviderModalProps {
     open: boolean;
@@ -31,35 +34,49 @@ const EditProviderModal = ({ open, provider, onClose, onSave }: EditProviderModa
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
     const [cuit, setCuit] = useState('');
-    const [status, setStatus] = useState<'active' | 'inactive'>('active');
+    const [status, setStatus] = useState<boolean>(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (open && provider) {
-            setName(provider.name);
-            setContact(provider.contact);
+            setName(provider.nombreEmpresa);
+            setContact(provider.personaContacto);
             setEmail(provider.email);
-            setPhone(provider.phone);
-            setAddress(provider.address);
+            setPhone(provider.telefono);
+            setAddress(provider.direccion || '');
             setCuit(provider.cuit);
-            setStatus(provider.status);
+            setStatus(provider.activo);
+            setError(null);
         }
     }, [open, provider]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!provider || !name.trim() || !contact.trim() || !email.trim() || !phone.trim() || !cuit.trim()) return;
 
-        const updatedProvider: Provider = {
-            ...provider,
-            name: name.trim(),
-            contact: contact.trim(),
-            email: email.trim(),
-            phone: phone.trim(),
-            address: address.trim(),
-            cuit: cuit.trim(),
-            status
-        };
-        onSave(updatedProvider);
-        onClose();
+        try {
+            setIsLoading(true);
+            setError(null);
+
+            const providerData = {
+                nombreEmpresa: name.trim(),
+                cuit: cuit.trim(),
+                personaContacto: contact.trim(),
+                email: email.trim(),
+                telefono: phone.trim(),
+                direccion: address.length > 0 ? address.trim() : "",
+                activo: status
+            };
+
+            await http.put(`/proveedores/${provider.id}`, providerData);
+
+            onSave(provider); // Trigger refresh
+            onClose();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Error al actualizar el proveedor');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     if (!provider) return null;
@@ -86,6 +103,11 @@ const EditProviderModal = ({ open, provider, onClose, onSave }: EditProviderModa
                 </IconButton>
             </DialogTitle>
             <DialogContent>
+                {error && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                        {error}
+                    </Alert>
+                )}
                 <Grid container spacing={3} sx={{ pt: 2 }}>
                     <Grid size={{ xs: 12, md: 6 }}>
                         <TextField
@@ -137,12 +159,12 @@ const EditProviderModal = ({ open, provider, onClose, onSave }: EditProviderModa
                         <FormControl fullWidth required>
                             <InputLabel>Estado</InputLabel>
                             <Select
-                                value={status}
+                                value={status.toString()}
                                 label="Estado"
-                                onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
+                                onChange={(e) => setStatus(e.target.value === 'true')}
                             >
-                                <MenuItem value="active">Activo</MenuItem>
-                                <MenuItem value="inactive">Inactivo</MenuItem>
+                                <MenuItem value="true">Activo</MenuItem>
+                                <MenuItem value="false">Inactivo</MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>
@@ -162,6 +184,7 @@ const EditProviderModal = ({ open, provider, onClose, onSave }: EditProviderModa
                 <Button
                     onClick={onClose}
                     variant="outlined"
+                    disabled={isLoading}
                     sx={{
                         borderRadius: 2,
                         textTransform: 'none',
@@ -173,6 +196,8 @@ const EditProviderModal = ({ open, provider, onClose, onSave }: EditProviderModa
                 <Button
                     onClick={handleSave}
                     variant="contained"
+                    disabled={isLoading}
+                    startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
                     sx={{
                         borderRadius: 2,
                         textTransform: 'none',
@@ -183,7 +208,7 @@ const EditProviderModal = ({ open, provider, onClose, onSave }: EditProviderModa
                         }
                     }}
                 >
-                    Guardar Cambios
+                    {isLoading ? 'Guardando...' : 'Guardar Cambios'}
                 </Button>
             </DialogActions>
         </Dialog>

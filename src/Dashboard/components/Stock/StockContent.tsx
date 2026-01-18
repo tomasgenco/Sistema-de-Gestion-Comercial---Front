@@ -54,9 +54,9 @@ const StockContent = () => {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
-    const [totalElements, setTotalElements] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0); // Trigger para forzar refresh
 
     // Estados para estadísticas
     const [totalProductsFromServer, setTotalProductsFromServer] = useState(0);
@@ -103,7 +103,6 @@ const StockContent = () => {
 
                     setProducts(paginatedProducts);
                     setTotalPages(Math.ceil(productosFormateados.length / ITEMS_PER_PAGE));
-                    setTotalElements(productosFormateados.length);
                 } else if (statusFilter !== 'all') {
                     // Si hay filtro de estado activo, obtener más productos para filtrar correctamente
                     // Usamos size=100 para obtener suficientes productos (ajustar según el tamaño de tu catálogo)
@@ -131,7 +130,6 @@ const StockContent = () => {
 
                     setProducts(paginatedProducts);
                     setTotalPages(Math.ceil(productosFormateados.length / ITEMS_PER_PAGE));
-                    setTotalElements(productosFormateados.length);
                 } else {
                     // Si no hay búsqueda ni filtro, usar endpoint paginado normal del backend
                     const response = await http.get<PaginatedResponse>(
@@ -150,7 +148,6 @@ const StockContent = () => {
 
                     setProducts(productosFormateados);
                     setTotalPages(response.data.totalPages);
-                    setTotalElements(response.data.totalElements);
                 }
             } catch (err: any) {
                 setError('Error al cargar los productos');
@@ -161,7 +158,7 @@ const StockContent = () => {
         };
 
         fetchProductos();
-    }, [currentPage, activeSearch, statusFilter]); // Agregar statusFilter a las dependencias
+    }, [currentPage, activeSearch, statusFilter, refreshTrigger]); // Agregar refreshTrigger para forzar recarga
 
     // Cargar estadísticas desde el backend
     useEffect(() => {
@@ -182,7 +179,7 @@ const StockContent = () => {
         };
 
         fetchStats();
-    }, [currentPage]); // Recargar estadísticas cuando cambia la página (por si se agregó/editó algo)
+    }, [refreshTrigger]); // Recargar estadísticas cuando cambia el trigger
 
 
 
@@ -230,9 +227,9 @@ const StockContent = () => {
     };
 
     const handleAdd = () => {
-        // Volver a la página 1 para ver el producto agregado
-        // El useEffect se encargará de recargar los datos
+        // Volver a la página 1 y forzar la recarga de datos y estadísticas
         setCurrentPage(1);
+        setRefreshTrigger(prev => prev + 1); // Incrementar trigger para forzar refresh
     };
 
     const handleCloseEditModal = () => {

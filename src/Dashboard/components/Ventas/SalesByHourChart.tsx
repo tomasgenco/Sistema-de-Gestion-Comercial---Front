@@ -45,7 +45,6 @@ const SalesByHourChart = () => {
 
                 setData(finalData);
             } catch (err) {
-                console.error('Error fetching sales by hour:', err);
                 setError('Error al cargar datos de ventas por hora');
                 setData([]);
             } finally {

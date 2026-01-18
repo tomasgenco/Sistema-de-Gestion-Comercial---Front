@@ -8,9 +8,10 @@ interface StatCardProps {
     trend?: 'up' | 'down';
     trendValue?: string;
     type?: 'positive' | 'negative' | 'neutral';
+    icon?: ReactNode;
 }
 
-const StatCard = ({ title, value, trend, trendValue, type }: StatCardProps) => {
+const StatCard = ({ title, value, trend, trendValue, type, icon }: StatCardProps) => {
     const isUp = trend === 'up';
     const trendColor = type === 'positive' ? '#10b981' : type === 'negative' ? '#ef4444' : '#3b82f6';
 
@@ -30,9 +31,28 @@ const StatCard = ({ title, value, trend, trendValue, type }: StatCardProps) => {
                 }
             }}
         >
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom fontWeight={500}>
-                {title}
-            </Typography>
+            <Box display="flex" alignItems="center" gap={1} mb={1}>
+                {icon && (
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 40,
+                            height: 40,
+                            borderRadius: 2,
+                            backgroundColor: `${trendColor}15`,
+                            color: trendColor,
+                            fontSize: '1.5rem'
+                        }}
+                    >
+                        {icon}
+                    </Box>
+                )}
+                <Typography variant="subtitle2" color="text.secondary" fontWeight={500}>
+                    {title}
+                </Typography>
+            </Box>
             <Box display="flex" alignItems="end" mb={1}>
                 <Typography variant="h4" fontWeight="bold" sx={{ color: '#0f172a' }}>
                     {value}

@@ -1,29 +1,55 @@
-import { useState, useMemo } from 'react';
-import { Box, Typography, Button, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Box, Typography, Button, TextField, Select, MenuItem, FormControl, InputLabel, CircularProgress, Alert, Pagination } from '@mui/material';
 import { MdAdd, MdSearch } from 'react-icons/md';
-import ProviderCard from './ProviderCard';
 import AddProviderModal from './AddProviderModal';
 import EditProviderModal from './EditProviderModal';
 import PurchaseModal from './PurchaseModal';
+import ProviderCard from './ProviderCard';
 import PurchaseHistoryTable from './PurchaseHistoryTable';
 import ProveedoresStats from './ProveedoresStats';
+import { http } from '../../../shared/api/http';
+
+// Interfaz para la respuesta del backend
+interface ProveedorResponse {
+    id: number;
+    cuit: string;
+    activo: boolean;
+    nombreEmpresa: string;
+    personaContacto: string;
+    email: string;
+    telefono: string;
+    direccion: string;
+    totalCompras: number;
+    ultimaCompra: string | null;
+}
+
+// Tipo para la respuesta paginada del backend
+interface PaginatedResponse {
+    content: ProveedorResponse[];
+    totalElements: number;
+    totalPages: number;
+    size: number;
+    number: number;
+    first: boolean;
+    last: boolean;
+}
 
 export interface Provider {
-    id: string;
-    name: string;
-    contact: string;
+    id: number;
+    nombreEmpresa: string;
+    personaContacto: string;
     email: string;
-    phone: string;
-    address: string;
+    telefono: string;
+    direccion: string;
     cuit: string;
-    totalPurchases: number;
-    lastPurchaseDate: string;
-    status: 'active' | 'inactive';
+    totalCompras: number;
+    ultimaCompra: string | null;
+    activo: boolean;
 }
 
 export interface Purchase {
     id: string;
-    providerId: string;
+    providerId: number;
     providerName: string;
     date: string;
     total: number;
@@ -39,125 +65,201 @@ export interface PurchaseItem {
     total: number;
 }
 
-// Datos de ejemplo de proveedores
-const initialProviders: Provider[] = [
-    {
-        id: 'PROV-001',
-        name: 'Tech Solutions S.A.',
-        contact: 'Juan Pérez',
-        email: 'ventas@techsolutions.com',
-        phone: '+54 11 4567-8900',
-        address: 'Av. Corrientes 1234, CABA',
-        cuit: '30-12345678-9',
-        totalPurchases: 1250000,
-        lastPurchaseDate: '2026-01-10T14:30:00',
-        status: 'active'
-    },
-    {
-        id: 'PROV-002',
-        name: 'Distribuidora Central',
-        contact: 'María González',
-        email: 'info@distcentral.com.ar',
-        phone: '+54 11 5678-9012',
-        address: 'Av. Libertador 5678, CABA',
-        cuit: '30-98765432-1',
-        totalPurchases: 890000,
-        lastPurchaseDate: '2026-01-12T10:15:00',
-        status: 'active'
-    },
-    {
-        id: 'PROV-003',
-        name: 'Importadora Global',
-        contact: 'Carlos Rodríguez',
-        email: 'compras@impglobal.com',
-        phone: '+54 11 6789-0123',
-        address: 'Av. Santa Fe 9012, CABA',
-        cuit: '30-11223344-5',
-        totalPurchases: 650000,
-        lastPurchaseDate: '2026-01-08T16:45:00',
-        status: 'active'
-    },
-    {
-        id: 'PROV-004',
-        name: 'Mayorista del Sur',
-        contact: 'Ana Martínez',
-        email: 'ventas@mayoristasur.com',
-        phone: '+54 11 7890-1234',
-        address: 'Av. Rivadavia 3456, CABA',
-        cuit: '30-55667788-9',
-        totalPurchases: 420000,
-        lastPurchaseDate: '2026-01-05T11:20:00',
-        status: 'active'
-    }
-];
-
-// Datos de ejemplo de compras
-const initialPurchases: Purchase[] = [
-    {
-        id: 'COMP-001',
-        providerId: 'PROV-001',
-        providerName: 'Tech Solutions S.A.',
-        date: '2026-01-10T14:30:00',
-        total: 1250000,
-        status: 'completed',
-        items: [
-            { productId: 'P-001', productName: 'Laptop Dell XPS 15', quantity: 1, unitPrice: 1250000, total: 1250000 }
-        ]
-    },
-    {
-        id: 'COMP-002',
-        providerId: 'PROV-002',
-        providerName: 'Distribuidora Central',
-        date: '2026-01-12T10:15:00',
-        total: 890000,
-        status: 'completed',
-        items: [
-            { productId: 'P-009', productName: 'Procesador Intel i7', quantity: 2, unitPrice: 450000, total: 900000 }
-        ]
-    }
-];
+const ITEMS_PER_PAGE = 10;
 
 const ProveedoresContent = () => {
-    const [providers, setProviders] = useState<Provider[]>(initialProviders);
-    const [purchases, setPurchases] = useState<Purchase[]>(initialPurchases);
+    const [providers, setProviders] = useState<Provider[]>([]);
+    const [purchases, setPurchases] = useState<Purchase[]>([]);
     const [addModalOpen, setAddModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
     const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
+
+    // Estados para proveedores
+    const [searchInput, setSearchInput] = useState(''); // Valor del input
+    const [searchTerm, setSearchTerm] = useState(''); // Valor que dispara la búsqueda
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Filtrar proveedores
-    const filteredProviders = useMemo(() => {
-        return providers.filter(provider => {
-            const searchLower = searchTerm.toLowerCase();
-            const matchesSearch =
-                provider.name.toLowerCase().includes(searchLower) ||
-                provider.contact.toLowerCase().includes(searchLower) ||
-                provider.email.toLowerCase().includes(searchLower) ||
-                provider.cuit.includes(searchTerm);
+    // Estados de paginación para proveedores
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
 
-            const matchesStatus = statusFilter === 'all' || provider.status === statusFilter;
+    // Trigger para recargar datos
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-            return matchesSearch && matchesStatus;
-        });
-    }, [providers, searchTerm, statusFilter]);
+    // Estados para historial de compras
+    const [purchaseSearchInput, setPurchaseSearchInput] = useState('');
+    const [purchaseSearchTerm, setPurchaseSearchTerm] = useState('');
 
-    // Calcular estadísticas
-    const totalProviders = providers.length;
-    const activeProviders = providers.filter(p => p.status === 'active').length;
-    const totalSpent = purchases.reduce((sum, p) => sum + p.total, 0);
+    const [purchaseCurrentPage, setPurchaseCurrentPage] = useState(1);
+    const [purchaseTotalPages, setPurchaseTotalPages] = useState(0);
+    const [purchaseTotalElements, setPurchaseTotalElements] = useState(0);
+    const [purchaseLoading, setPurchaseLoading] = useState(false);
 
-    const handleAddProvider = (newProvider: Omit<Provider, 'id'>) => {
-        const provider: Provider = {
-            ...newProvider,
-            id: `PROV-${String(providers.length + 1).padStart(3, '0')}`
+    // Resetear a página 1 cuando cambian los filtros
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter]);
+
+    // Cargar proveedores desde el backend con paginación y filtros
+    useEffect(() => {
+        const fetchProviders = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                // Construir los parámetros de la URL
+                const params = new URLSearchParams();
+                params.append('page', currentPage.toString());
+                params.append('size', ITEMS_PER_PAGE.toString());
+
+                // Agregar búsqueda por texto si existe
+                if (searchTerm.trim()) {
+                    params.append('q', searchTerm.trim());
+                }
+
+                // Agregar filtro de estado activo/inactivo
+                if (statusFilter === 'active') {
+                    params.append('activo', 'true');
+                } else if (statusFilter === 'inactive') {
+                    params.append('activo', 'false');
+                }
+                // Si es 'all', no se agrega el parámetro activo
+
+                const response = await http.get<PaginatedResponse>(
+                    `/proveedores/filtrar?${params.toString()}`
+                );
+
+                // Mapear la respuesta del backend al formato del frontend
+                const mappedProviders: Provider[] = (response.data.content || []).map(proveedor => ({
+                    id: proveedor.id,
+                    nombreEmpresa: proveedor.nombreEmpresa,
+                    personaContacto: proveedor.personaContacto,
+                    email: proveedor.email,
+                    telefono: proveedor.telefono,
+                    direccion: proveedor.direccion,
+                    cuit: proveedor.cuit,
+                    totalCompras: proveedor.totalCompras,
+                    ultimaCompra: proveedor.ultimaCompra || new Date().toISOString(),
+                    activo: proveedor.activo
+                }));
+
+                setProviders(mappedProviders);
+                setTotalPages(response.data.totalPages);
+                setTotalElements(response.data.totalElements);
+            } catch (err: any) {
+                setError(err.response?.data?.message || 'Error al cargar los proveedores');
+                setProviders([]);
+            } finally {
+                setLoading(false);
+            }
         };
-        setProviders([...providers, provider]);
+
+        fetchProviders();
+    }, [currentPage, searchTerm, statusFilter, refreshTrigger]);
+
+    // Estados para estadísticas
+    const [statsTotalProveedores, setStatsTotalProveedores] = useState(0);
+    const [statsProveedoresActivos, setStatsProveedoresActivos] = useState(0);
+    const [statsTotalGastado, setStatsTotalGastado] = useState(0);
+
+    // Cargar estadísticas
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await http.get<{
+                    totalProveedores: number;
+                    proveedoresActivos: number;
+                    totalGastado: number;
+                }>('/proveedores/stats');
+
+                setStatsTotalProveedores(response.data.totalProveedores);
+                setStatsProveedoresActivos(response.data.proveedoresActivos);
+                setStatsTotalGastado(response.data.totalGastado);
+            } catch (err) {
+                // Error silencioso
+            }
+        };
+
+        fetchStats();
+    }, [providers, refreshTrigger]);
+
+    // Cargar historial de compras con paginación y filtros
+    useEffect(() => {
+        const fetchPurchases = async () => {
+            try {
+                setPurchaseLoading(true);
+
+                // Construir los parámetros de la URL
+                const params = new URLSearchParams();
+                params.append('page', purchaseCurrentPage.toString());
+                params.append('size', ITEMS_PER_PAGE.toString());
+
+                // Agregar búsqueda por proveedor si existe
+                if (purchaseSearchTerm.trim()) {
+                    params.append('q', purchaseSearchTerm.trim());
+                }
+
+                // Determinar si hay filtros activos
+                const hasFilters = purchaseSearchTerm.trim();
+
+                // Usar /compras/filtrar solo si hay filtros, sino usar /compras
+                const endpoint = hasFilters ? '/compras/filtrar' : '/compras';
+
+                const response = await http.get<any>(`${endpoint}?${params.toString()}`);
+
+                // Cada elemento del content es una compra completa
+                // Los items de la compra están en el array 'detalles'
+                const mappedPurchases: Purchase[] = (response.data.content || []).map((compra: any) => {
+
+                    // Mapear los detalles (items) de la compra
+                    const mappedItems = (compra.detalles || []).map((detalle: any) => ({
+                        productId: String(detalle.producto?.id || ''),
+                        productName: detalle.nombreProducto || detalle.producto?.nombre || 'Producto',
+                        quantity: detalle.cantidad || 0,
+                        unitPrice: detalle.precioUnitario || 0,
+                        total: (detalle.cantidad || 0) * (detalle.precioUnitario || 0)
+                    }));
+
+                    return {
+                        id: String(compra.id),
+                        providerId: compra.proveedor?.id || 0,
+                        providerName: compra.proveedor?.nombreEmpresa || 'Proveedor desconocido',
+                        date: compra.fechaHora || new Date().toISOString(),
+                        total: compra.total || mappedItems.reduce((sum: number, item: any) => sum + item.total, 0),
+                        items: mappedItems,
+                        status: 'completed'
+                    };
+                });
+
+                setPurchases(mappedPurchases);
+                setPurchaseTotalPages(response.data.totalPages);
+                setPurchaseTotalElements(response.data.totalElements);
+            } catch (err: any) {
+                setPurchases([]);
+            } finally {
+                setPurchaseLoading(false);
+            }
+        };
+
+        fetchPurchases();
+    }, [purchaseCurrentPage, purchaseSearchTerm, refreshTrigger]);
+
+    const handleAddProvider = () => {
+        // Volver a la página 1 para ver el nuevo proveedor
+        if (currentPage === 1) {
+            setRefreshTrigger(prev => prev + 1);
+        } else {
+            setCurrentPage(1);
+        }
     };
 
-    const handleEditProvider = (updatedProvider: Provider) => {
-        setProviders(providers.map(p => p.id === updatedProvider.id ? updatedProvider : p));
+    const handleEditProvider = () => {
+        // Recargar la página actual
+        setRefreshTrigger(prev => prev + 1);
     };
 
     const handleInitiatePurchase = (provider: Provider) => {
@@ -165,31 +267,16 @@ const ProveedoresContent = () => {
         setPurchaseModalOpen(true);
     };
 
-    const handleSavePurchase = (purchase: Omit<Purchase, 'id'>) => {
-        const newPurchase: Purchase = {
-            ...purchase,
-            id: `COMP-${String(purchases.length + 1).padStart(3, '0')}`
-        };
-
-        setPurchases([newPurchase, ...purchases]);
-
-        // Actualizar total de compras del proveedor
-        setProviders(providers.map(p => {
-            if (p.id === purchase.providerId) {
-                return {
-                    ...p,
-                    totalPurchases: p.totalPurchases + purchase.total,
-                    lastPurchaseDate: purchase.date
-                };
-            }
-            return p;
-        }));
+    const handleSavePurchase = () => {
+        // Recargar proveedores y estadísticas después de guardar una compra
+        setRefreshTrigger(prev => prev + 1);
     };
 
     const handleEdit = (provider: Provider) => {
         setSelectedProvider(provider);
         setEditModalOpen(true);
     };
+
 
     return (
         <Box sx={{ width: '100%' }}>
@@ -225,21 +312,27 @@ const ProveedoresContent = () => {
 
             {/* Stats */}
             <ProveedoresStats
-                totalProviders={totalProviders}
-                activeProviders={activeProviders}
-                totalSpent={totalSpent}
+                totalProviders={statsTotalProveedores}
+                activeProviders={statsProveedoresActivos}
+                totalSpent={statsTotalGastado}
             />
 
             {/* Filters */}
             <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
                 <TextField
-                    placeholder="Buscar por nombre, contacto, email o CUIT..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar por nombre, contacto, email o CUIT... (presiona Enter)"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            setSearchTerm(searchInput);
+                        }
+                    }}
                     sx={{ flex: 1 }}
                     InputProps={{
                         startAdornment: <MdSearch size={20} style={{ marginRight: 8, color: '#64748b' }} />,
                     }}
+                    helperText={searchTerm ? `Buscando: "${searchTerm}"` : 'Presiona Enter para buscar'}
                 />
                 <FormControl sx={{ minWidth: 150 }}>
                     <InputLabel>Estado</InputLabel>
@@ -257,45 +350,150 @@ const ProveedoresContent = () => {
 
             {/* Provider Cards */}
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a', mb: 3 }}>
-                Proveedores ({filteredProviders.length})
+                Proveedores ({totalElements})
             </Typography>
 
-            <Box sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-                gap: 3,
-                mb: 4
-            }}>
-                {filteredProviders.map((provider) => (
-                    <ProviderCard
-                        key={provider.id}
-                        provider={provider}
-                        onInitiatePurchase={handleInitiatePurchase}
-                        onEdit={handleEdit}
-                    />
-                ))}
-            </Box>
+            {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    {error}
+                </Alert>
+            )}
 
-            {filteredProviders.length === 0 && (
-                <Box sx={{
-                    textAlign: 'center',
-                    py: 8,
-                    bgcolor: '#f8fafc',
-                    borderRadius: 3,
-                    border: '2px dashed #cbd5e1'
-                }}>
-                    <Typography variant="body1" color="text.secondary">
-                        No se encontraron proveedores con los filtros aplicados
-                    </Typography>
+            {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                    <CircularProgress size={48} />
                 </Box>
+            ) : (
+                <>
+                    <Box sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+                        gap: 3,
+                        mb: 4
+                    }}>
+                        {providers.map((provider) => (
+                            <ProviderCard
+                                key={provider.id}
+                                provider={provider}
+                                onInitiatePurchase={handleInitiatePurchase}
+                                onEdit={handleEdit}
+                            />
+                        ))}
+                    </Box>
+
+                    {providers.length === 0 && !loading && (
+                        <Box sx={{
+                            textAlign: 'center',
+                            py: 8,
+                            bgcolor: '#f8fafc',
+                            borderRadius: 3,
+                            border: '2px dashed #cbd5e1'
+                        }}>
+                            <Typography variant="body1" color="text.secondary">
+                                No se encontraron proveedores
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                            <Pagination
+                                count={totalPages}
+                                page={currentPage}
+                                onChange={(_event, page) => {
+                                    setCurrentPage(page);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                color="primary"
+                                size="large"
+                                showFirstButton
+                                showLastButton
+                                sx={{
+                                    '& .MuiPaginationItem-root': {
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                    },
+                                    '& .Mui-selected': {
+                                        bgcolor: '#0f172a !important',
+                                        color: 'white',
+                                        '&:hover': {
+                                            bgcolor: '#1e293b !important',
+                                        }
+                                    }
+                                }}
+                            />
+                        </Box>
+                    )}
+                </>
             )}
 
             {/* Purchase History */}
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a', mb: 3, mt: 5 }}>
-                Historial de Compras ({purchases.length})
+                Historial de Compras ({purchaseTotalElements})
             </Typography>
 
-            <PurchaseHistoryTable purchases={purchases} />
+            {/* Filtros de compras */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
+                <TextField
+                    placeholder="Buscar por proveedor... (presiona Enter)"
+                    value={purchaseSearchInput}
+                    onChange={(e) => setPurchaseSearchInput(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            setPurchaseSearchTerm(purchaseSearchInput);
+                            setPurchaseCurrentPage(1);
+                        }
+                    }}
+                    sx={{ flex: 1, minWidth: 250 }}
+                    InputProps={{
+                        startAdornment: <MdSearch size={20} style={{ marginRight: 8, color: '#64748b' }} />,
+                    }}
+                    helperText={purchaseSearchTerm ? `Buscando: "${purchaseSearchTerm}"` : 'Presiona Enter para buscar'}
+                />
+
+            </Box>
+
+            {purchaseLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                    <CircularProgress size={48} />
+                </Box>
+            ) : (
+                <>
+                    <PurchaseHistoryTable purchases={purchases} />
+
+                    {/* Paginación de compras */}
+                    {purchaseTotalPages > 1 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                            <Pagination
+                                count={purchaseTotalPages}
+                                page={purchaseCurrentPage}
+                                onChange={(_event, page) => {
+                                    setPurchaseCurrentPage(page);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                color="primary"
+                                size="large"
+                                showFirstButton
+                                showLastButton
+                                sx={{
+                                    '& .MuiPaginationItem-root': {
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                    },
+                                    '& .Mui-selected': {
+                                        bgcolor: '#0f172a !important',
+                                        color: 'white',
+                                        '&:hover': {
+                                            bgcolor: '#1e293b !important',
+                                        }
+                                    }
+                                }}
+                            />
+                        </Box>
+                    )}
+                </>
+            )}
 
             {/* Modals */}
             <AddProviderModal
