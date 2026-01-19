@@ -190,7 +190,7 @@ const VentasContent = () => {
 
                 setTodayCount(response.data.ventasDelDia);
                 setTodayTotal(response.data.ingresosTotalesDelDia);
-                setAverageSale(response.data.ventasDelMes > 0 ? response.data.ingresosTotalesDelDia / response.data.ventasDelDia : 0); //promedio del dia
+                setAverageSale(response.data.ventasDelDia > 0 ? response.data.ingresosTotalesDelDia / response.data.ventasDelDia : 0); //promedio del dia
             } catch (err: any) {
                 // Si falla, mantener valores en 0
                 setTodayCount(0);

@@ -10,6 +10,18 @@ interface ProviderCardProps {
 
 const ProviderCard = ({ provider, onInitiatePurchase, onEdit }: ProviderCardProps) => {
     const formatDate = (dateString: string) => {
+        // Si la fecha viene en formato yyyy-mm-dd, parseamos manualmente para evitar problemas de zona horaria
+        if (dateString.includes('-') && !dateString.includes('T')) {
+            const [year, month, day] = dateString.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            return date.toLocaleDateString('es-AR', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Para fechas con hora (ISO 8601 completo)
         const date = new Date(dateString);
         return date.toLocaleDateString('es-AR', {
             year: 'numeric',
@@ -126,12 +138,21 @@ const ProviderCard = ({ provider, onInitiatePurchase, onEdit }: ProviderCardProp
                         ${provider.totalCompras.toLocaleString('es-AR')}
                     </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="caption" color="text.secondary">
                         Última Compra:
                     </Typography>
-                    <Typography variant="caption" fontWeight={600} sx={{ color: '#64748b' }}>
-                        {provider.ultimaCompra ? formatDate(provider.ultimaCompra) : 'N/A'}
+                    <Typography
+                        variant="caption"
+                        fontWeight={600}
+                        sx={{
+                            color: provider.ultimaCompra ? '#64748b' : '#94a3b8',
+                            fontStyle: provider.ultimaCompra ? 'normal' : 'italic',
+                            textAlign: 'right',
+                            maxWidth: '200px'
+                        }}
+                    >
+                        {provider.ultimaCompra ? formatDate(provider.ultimaCompra) : 'Todavía no se compró a este proveedor'}
                     </Typography>
                 </Box>
             </Box>

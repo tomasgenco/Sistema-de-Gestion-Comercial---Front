@@ -143,7 +143,7 @@ const ProveedoresContent = () => {
                     direccion: proveedor.direccion,
                     cuit: proveedor.cuit,
                     totalCompras: proveedor.totalCompras,
-                    ultimaCompra: proveedor.ultimaCompra || new Date().toISOString(),
+                    ultimaCompra: proveedor.ultimaCompra,
                     activo: proveedor.activo
                 }));
 
@@ -178,9 +178,9 @@ const ProveedoresContent = () => {
 
                 setStatsTotalProveedores(response.data.totalProveedores);
                 setStatsProveedoresActivos(response.data.proveedoresActivos);
-                setStatsTotalGastado(response.data.totalGastado);
+                setStatsTotalGastado(response.data.totalGastado); //Total gastado del mes
             } catch (err) {
-                // Error silencioso
+
             }
         };
 
