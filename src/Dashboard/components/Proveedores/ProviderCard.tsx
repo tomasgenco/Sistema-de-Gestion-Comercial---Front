@@ -152,7 +152,7 @@ const ProviderCard = ({ provider, onInitiatePurchase, onEdit }: ProviderCardProp
                             maxWidth: '200px'
                         }}
                     >
-                        {provider.ultimaCompra ? formatDate(provider.ultimaCompra) : 'Todavía no se compró a este proveedor'}
+                        {provider.ultimaCompra ? formatDate(provider.ultimaCompra) : 'Todavía no se realizó una compra a este proveedor'}
                     </Typography>
                 </Box>
             </Box>

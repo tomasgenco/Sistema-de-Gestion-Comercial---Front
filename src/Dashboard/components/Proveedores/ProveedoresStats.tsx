@@ -26,7 +26,7 @@ const ProveedoresStats = ({ totalProviders, activeProviders, totalSpent }: Prove
             format: 'number'
         },
         {
-            title: 'Total Gastado',
+            title: 'Total Gastado en el Mes',
             value: totalSpent,
             icon: MdAttachMoney,
             color: '#f59e0b',

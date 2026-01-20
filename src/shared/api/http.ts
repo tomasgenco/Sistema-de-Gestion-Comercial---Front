@@ -1,16 +1,12 @@
 import axios from "axios";
 
 export const http = axios.create({
-    baseURL: "/api",
+    baseURL: import.meta.env.VITE_API_BASE_URL,
     withCredentials: true,
 });
 
 
-// http.interceptors.request.use((config) => {
-//     const token = localStorage.getItem("token");
-//     if (token) config.headers.Authorization = `Bearer ${token}`;
-//     return config;
-// });
+
 
 http.interceptors.response.use(
     (response) => {
@@ -18,6 +14,13 @@ http.interceptors.response.use(
     },
     async (error) => {
         const originalRequest = error.config;
+
+        // NO intentar refrescar si la petición que falló es /auth/refresh (evita loop infinito)
+        if (originalRequest.url?.includes('/auth/refresh')) {
+            // Si el refresh falla, redirigir al login
+            window.location.href = '/';
+            return Promise.reject(error);
+        }
 
         // Manejar tanto 401 (Unauthorized) como 403 (Forbidden)
         if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {

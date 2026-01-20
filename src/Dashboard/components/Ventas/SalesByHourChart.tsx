@@ -31,6 +31,7 @@ const SalesByHourChart = () => {
 
                 // 2. Crear mapa de ventas existentes
                 const salesMap = new Map<string, number>();
+
                 (response.data || []).forEach(item => {
                     // Convertir el número de hora (ej: 9) a formato "09:00"
                     const normalizedHour = item.hora.toString().padStart(2, '0') + ':00';

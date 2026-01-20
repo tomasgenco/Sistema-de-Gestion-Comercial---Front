@@ -8,7 +8,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
-import { MdHexagon } from 'react-icons/md';
+import logo from '../assets/logo.png';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { http } from '../shared/api/http';
@@ -79,7 +79,7 @@ export default function LoginForm() {
 
             <Box sx={{ width: '60%', mb: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                    <MdHexagon size={24} color="#0f172a" />
+                    <img src={logo} alt="Logo" style={{ width: 32, height: 32 }} />
                     <Typography fontSize={24} fontWeight="bold" sx={{ ml: 1, letterSpacing: 1.5, color: '#0f172a', textTransform: 'uppercase' }}>
                         STOCKEATE
                     </Typography>

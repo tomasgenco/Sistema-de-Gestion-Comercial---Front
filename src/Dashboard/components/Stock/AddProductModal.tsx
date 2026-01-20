@@ -23,7 +23,8 @@ interface AddProductModalProps {
 // Tipo para el request al backend
 interface ProductoRequest {
     nombre: string;
-    precio: number;
+    precioVenta: number;
+    precioCompra: number;
     sku: string;
     stock: number;
 }
@@ -32,7 +33,8 @@ interface ProductoRequest {
 interface ProductoResponse {
     id: number;
     nombre: string;
-    precio: number;
+    precioVenta: number;
+    precioCompra: number;
     sku: string;
     stock: number;
 }
@@ -40,24 +42,34 @@ interface ProductoResponse {
 const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
     const [name, setName] = useState('');
     const [barcode, setBarcode] = useState('');
-    const [price, setPrice] = useState('');
+    const [price, setPrice] = useState(''); // Precio de venta
+    const [precioCompra, setPrecioCompra] = useState(''); // Precio de compra
     const [stock, setStock] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleAdd = async () => {
-        if (name.trim() && barcode.trim() && price.trim() && stock.trim()) {
+        if (name.trim() && barcode.trim() && price.trim() && precioCompra.trim() && stock.trim()) {
             try {
                 setLoading(true);
                 setError(null);
 
                 const stockNum = parseInt(stock);
                 const priceNum = parseFloat(price);
+                const precioCompraNum = parseFloat(precioCompra);
+
+                // Validar que precio de venta sea mayor que precio de compra
+                if (priceNum <= precioCompraNum) {
+                    setError('El precio de venta debe ser mayor al precio de compra');
+                    setLoading(false);
+                    return;
+                }
 
                 // Preparar el request según el formato del backend
                 const requestData: ProductoRequest = {
                     nombre: name.trim(),
-                    precio: priceNum,
+                    precioVenta: priceNum,
+                    precioCompra: precioCompraNum,
                     sku: barcode.trim(),
                     stock: stockNum
                 };
@@ -80,6 +92,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
         setName('');
         setBarcode('');
         setPrice('');
+        setPrecioCompra('');
         setStock('');
         setError(null);
         onClose();
@@ -136,7 +149,25 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                         }}
                     />
                     <TextField
-                        label="Precio"
+                        label="Precio de Compra"
+                        value={precioCompra}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                                setPrecioCompra(value);
+                            }
+                        }}
+                        fullWidth
+                        variant="outlined"
+                        type="text"
+                        disabled={loading}
+                        InputProps={{
+                            startAdornment: <Box sx={{ mr: 1, color: '#64748b' }}>$</Box>,
+                        }}
+                        helperText="Precio al que compras el producto"
+                    />
+                    <TextField
+                        label="Precio de Venta"
                         value={price}
                         onChange={(e) => {
                             const value = e.target.value;
@@ -151,7 +182,18 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                         InputProps={{
                             startAdornment: <Box sx={{ mr: 1, color: '#64748b' }}>$</Box>,
                         }}
+                        helperText="Precio al que vendes el producto"
                     />
+                    {precioCompra && price && parseFloat(price) > parseFloat(precioCompra) && (
+                        <Box sx={{ p: 2, bgcolor: '#dcfce7', borderRadius: 2, border: '1px solid #16a34a' }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box sx={{ color: '#166534', fontWeight: 600 }}>Margen de ganancia:</Box>
+                                <Box sx={{ color: '#16a34a', fontWeight: 700, fontSize: '1.1rem' }}>
+                                    {(((parseFloat(price) - parseFloat(precioCompra)) / parseFloat(precioCompra)) * 100).toFixed(1)}%
+                                </Box>
+                            </Box>
+                        </Box>
+                    )}
                     <TextField
                         label="Stock Inicial"
                         value={stock}
@@ -191,7 +233,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                 <Button
                     onClick={handleAdd}
                     variant="contained"
-                    disabled={!name.trim() || !barcode.trim() || !price.trim() || !stock.trim() || loading}
+                    disabled={!name.trim() || !barcode.trim() || !price.trim() || !precioCompra.trim() || !stock.trim() || loading}
                     sx={{
                         borderRadius: 2,
                         textTransform: 'none',

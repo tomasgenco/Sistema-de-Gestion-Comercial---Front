@@ -25,21 +25,24 @@ interface EditProductModalProps {
 // Tipo para el request al backend
 interface EditProductoRequest {
     nombre: string;
-    precio: number;
+    precioVenta: number;
+    precioCompra: number;
 }
 
 // Tipo para la respuesta del backend
 interface EditProductoResponse {
     id: number;
     nombre: string;
-    precio: number;
+    precioVenta: number;
+    precioCompra: number;
     sku: string;
     stock: number;
 }
 
 const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalProps) => {
     const [name, setName] = useState('');
-    const [price, setPrice] = useState('');
+    const [price, setPrice] = useState(''); // Precio de venta
+    const [precioCompra, setPrecioCompra] = useState(''); // Precio de compra
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -47,21 +50,31 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
         if (product) {
             setName(product.name);
             setPrice(product.price.toString());
+            setPrecioCompra(product.precioCompra.toString());
         }
     }, [product]);
 
     const handleSave = async () => {
-        if (product && name.trim() && price.trim()) {
+        if (product && name.trim() && price.trim() && precioCompra.trim()) {
             try {
                 setLoading(true);
                 setError(null);
 
                 const priceNum = parseFloat(price);
+                const precioCompraNum = parseFloat(precioCompra);
+
+                // Validar que precio de venta sea mayor que precio de compra
+                if (priceNum <= precioCompraNum) {
+                    setError('El precio de venta debe ser mayor al precio de compra');
+                    setLoading(false);
+                    return;
+                }
 
                 // Preparar el request según el formato del backend
                 const requestData: EditProductoRequest = {
                     nombre: name.trim(),
-                    precio: priceNum
+                    precioVenta: priceNum,
+                    precioCompra: precioCompraNum
                 };
 
                 // Hacer PUT al backend
@@ -71,11 +84,18 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
                 );
 
                 // Transformar la respuesta al formato del frontend
+                // Calcular margen si no viene del backend
+                const margen = response.data.precioCompra > 0
+                    ? ((response.data.precioVenta - response.data.precioCompra) / response.data.precioCompra) * 100
+                    : 0;
+
                 const updatedProduct: Product = {
                     id: String(response.data.id),
                     name: response.data.nombre,
                     barcode: response.data.sku,
-                    price: response.data.precio,
+                    price: response.data.precioVenta,
+                    precioCompra: response.data.precioCompra,
+                    margen: margen,
                     stock: response.data.stock,
                     status: response.data.stock === 0 ? 'out' : response.data.stock <= 5 ? 'low' : 'available'
                 };
@@ -93,6 +113,7 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
     const handleClose = () => {
         setName('');
         setPrice('');
+        setPrecioCompra('');
         setError(null);
         onClose();
     };
@@ -136,7 +157,26 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
                         disabled={loading}
                     />
                     <TextField
-                        label="Precio"
+                        label="Precio de Compra"
+                        value={precioCompra}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            // Solo permitir números y punto decimal
+                            if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                                setPrecioCompra(value);
+                            }
+                        }}
+                        fullWidth
+                        variant="outlined"
+                        type="text"
+                        disabled={loading}
+                        InputProps={{
+                            startAdornment: <Box sx={{ mr: 1, color: '#64748b' }}>$</Box>,
+                        }}
+                        helperText="Precio al que compras el producto"
+                    />
+                    <TextField
+                        label="Precio de Venta"
                         value={price}
                         onChange={(e) => {
                             const value = e.target.value;
@@ -152,7 +192,18 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
                         InputProps={{
                             startAdornment: <Box sx={{ mr: 1, color: '#64748b' }}>$</Box>,
                         }}
+                        helperText="Precio al que vendes el producto"
                     />
+                    {precioCompra && price && parseFloat(price) > parseFloat(precioCompra) && (
+                        <Box sx={{ p: 2, bgcolor: '#dcfce7', borderRadius: 2, border: '1px solid #16a34a' }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box sx={{ color: '#166534', fontWeight: 600 }}>Margen de ganancia:</Box>
+                                <Box sx={{ color: '#16a34a', fontWeight: 700, fontSize: '1.1rem' }}>
+                                    {(((parseFloat(price) - parseFloat(precioCompra)) / parseFloat(precioCompra)) * 100).toFixed(1)}%
+                                </Box>
+                            </Box>
+                        </Box>
+                    )}
                 </Box>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 3, pt: 2 }}>
@@ -177,7 +228,7 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
                 <Button
                     onClick={handleSave}
                     variant="contained"
-                    disabled={!name.trim() || !price.trim() || loading}
+                    disabled={!name.trim() || !price.trim() || !precioCompra.trim() || loading}
                     sx={{
                         borderRadius: 2,
                         textTransform: 'none',

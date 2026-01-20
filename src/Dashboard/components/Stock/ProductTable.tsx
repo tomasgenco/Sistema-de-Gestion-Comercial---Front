@@ -16,7 +16,9 @@ export interface Product {
     id: string;
     name: string;
     barcode: string;
-    price: number;
+    price: number; // Precio de venta
+    precioCompra: number; // Precio de compra
+    margen: number; // Margen de ganancia en porcentaje
     stock: number;
     status: 'available' | 'low' | 'out';
 }
@@ -61,7 +63,9 @@ const ProductTable = ({ products, onEdit }: ProductTableProps) => {
                         <TableRow>
                             <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Producto</TableCell>
                             <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>SKU</TableCell>
-                            <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Precio</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Precio Compra</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Precio Venta</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Margen</TableCell>
                             <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Stock</TableCell>
                             <TableCell sx={{ fontWeight: 600, color: '#64748b' }}>Estado</TableCell>
                             <TableCell align="right" sx={{ fontWeight: 600, color: '#64748b' }}>Acciones</TableCell>
@@ -81,7 +85,24 @@ const ProductTable = ({ products, onEdit }: ProductTableProps) => {
                                     <TableCell sx={{ color: '#64748b', fontFamily: 'monospace', fontSize: '0.9rem' }}>
                                         {product.barcode}
                                     </TableCell>
-                                    <TableCell sx={{ fontWeight: 600 }}>${product.price.toLocaleString('es-AR')}</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, color: '#dc2626' }}>
+                                        ${(product.precioCompra || 0).toLocaleString('es-AR')}
+                                    </TableCell>
+                                    <TableCell sx={{ fontWeight: 600, color: '#16a34a' }}>
+                                        ${product.price.toLocaleString('es-AR')}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Chip
+                                            label={`${(product.margen || 0).toFixed(1)}%`}
+                                            size="small"
+                                            sx={{
+                                                bgcolor: (product.margen || 0) >= 30 ? '#dcfce7' : (product.margen || 0) >= 15 ? '#fef3c7' : '#fee2e2',
+                                                color: (product.margen || 0) >= 30 ? '#16a34a' : (product.margen || 0) >= 15 ? '#d97706' : '#dc2626',
+                                                fontWeight: 600,
+                                                borderRadius: 2
+                                            }}
+                                        />
+                                    </TableCell>
                                     <TableCell sx={{ fontWeight: 500 }}>{product.stock} unidades</TableCell>
                                     <TableCell>
                                         <Chip

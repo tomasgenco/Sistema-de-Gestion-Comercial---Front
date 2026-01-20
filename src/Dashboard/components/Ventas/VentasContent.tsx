@@ -269,7 +269,6 @@ const VentasContent = () => {
                             onChange={(e) => setSearchPaymentMethod(e.target.value)}
                             sx={{ bgcolor: 'white' }}
                         >
-                            <MenuItem value="">Todos</MenuItem>
                             <MenuItem value="efectivo">Efectivo</MenuItem>
                             <MenuItem value="mercadopago">Mercado Pago</MenuItem>
                             <MenuItem value="cuentadni">Cuenta DNI</MenuItem>

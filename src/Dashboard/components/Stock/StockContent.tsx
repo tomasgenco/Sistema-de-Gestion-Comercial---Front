@@ -18,7 +18,8 @@ const getProductStatus = (stock: number): 'available' | 'low' | 'out' => {
 interface ProductoAPI {
     id: number;
     nombre: string;
-    precio: number;
+    precioVenta: number; // Precio de venta
+    precioCompra: number; // Precio de compra
     sku: string;
     stock: number;
 }
@@ -82,14 +83,23 @@ const StockContent = () => {
                     const dataArray = Array.isArray(response.data) ? response.data : [];
 
                     // Transformar los datos del backend al formato del frontend
-                    let productosFormateados: Product[] = dataArray.map(producto => ({
-                        id: String(producto.id),
-                        name: producto.nombre,
-                        barcode: producto.sku,
-                        price: producto.precio,
-                        stock: producto.stock,
-                        status: getProductStatus(producto.stock)
-                    }));
+                    let productosFormateados: Product[] = dataArray.map(producto => {
+                        // Calcular margen: ((precioVenta - precioCompra) / precioCompra) * 100
+                        const margen = producto.precioCompra > 0
+                            ? ((producto.precioVenta - producto.precioCompra) / producto.precioCompra) * 100
+                            : 0;
+
+                        return {
+                            id: String(producto.id),
+                            name: producto.nombre,
+                            barcode: producto.sku,
+                            price: producto.precioVenta,
+                            precioCompra: producto.precioCompra,
+                            margen: margen,
+                            stock: producto.stock,
+                            status: getProductStatus(producto.stock)
+                        };
+                    });
 
                     // Aplicar filtro de estado si no es 'all'
                     if (statusFilter !== 'all') {
@@ -111,14 +121,23 @@ const StockContent = () => {
                     );
 
                     // Transformar y filtrar
-                    let productosFormateados: Product[] = (response.data.content || []).map(producto => ({
-                        id: String(producto.id),
-                        name: producto.nombre,
-                        barcode: producto.sku,
-                        price: producto.precio,
-                        stock: producto.stock,
-                        status: getProductStatus(producto.stock)
-                    }));
+                    let productosFormateados: Product[] = (response.data.content || []).map(producto => {
+                        // Calcular margen: ((precioVenta - precioCompra) / precioCompra) * 100
+                        const margen = producto.precioCompra > 0
+                            ? ((producto.precioVenta - producto.precioCompra) / producto.precioCompra) * 100
+                            : 0;
+
+                        return {
+                            id: String(producto.id),
+                            name: producto.nombre,
+                            barcode: producto.sku,
+                            price: producto.precioVenta,
+                            precioCompra: producto.precioCompra,
+                            margen: margen,
+                            stock: producto.stock,
+                            status: getProductStatus(producto.stock)
+                        };
+                    });
 
                     // Aplicar filtro de estado
                     productosFormateados = productosFormateados.filter(p => p.status === statusFilter);
@@ -137,14 +156,23 @@ const StockContent = () => {
                     );
 
                     // Transformar los datos del backend al formato del frontend
-                    const productosFormateados: Product[] = (response.data.content || []).map(producto => ({
-                        id: String(producto.id),
-                        name: producto.nombre,
-                        barcode: producto.sku,
-                        price: producto.precio,
-                        stock: producto.stock,
-                        status: getProductStatus(producto.stock)
-                    }));
+                    const productosFormateados: Product[] = (response.data.content || []).map(producto => {
+                        // Calcular margen: ((precioVenta - precioCompra) / precioCompra) * 100
+                        const margen = producto.precioCompra > 0
+                            ? ((producto.precioVenta - producto.precioCompra) / producto.precioCompra) * 100
+                            : 0;
+
+                        return {
+                            id: String(producto.id),
+                            name: producto.nombre,
+                            barcode: producto.sku,
+                            price: producto.precioVenta,
+                            precioCompra: producto.precioCompra,
+                            margen: margen,
+                            stock: producto.stock,
+                            status: getProductStatus(producto.stock)
+                        };
+                    });
 
                     setProducts(productosFormateados);
                     setTotalPages(response.data.totalPages);
@@ -285,7 +313,7 @@ const StockContent = () => {
             {/* Filters and Search */}
             <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
                 <TextField
-                    placeholder="Buscar por nombre o SKU..."
+                    placeholder="Buscar por nombre o SKU... (presione Enter)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => {

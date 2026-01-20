@@ -34,7 +34,7 @@ interface ProductoAPI {
     id: number;
     nombre: string;
     sku: string;
-    precio: number;
+    precioVenta: number;
     stock: number;
 }
 
@@ -197,24 +197,17 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
 
         try {
             const response = await http.get<ProductoAPI[]>(`/producto/search?q=${encodeURIComponent(searchByName.trim())}`);
-            const product = response.data?.[0];
 
-            if (product) {
-                if (product.stock === 0) {
-                    showSnackbar('Producto sin stock disponible', 'warning');
-                    setSearchByName('');
-                    return;
-                }
-
-                addProductToSale(product);
-                setSearchByName('');
-                setSuggestions([]);
+            if (response.data && response.data.length > 0) {
+                // Mostrar sugerencias en lugar de agregar automáticamente
+                setSuggestions(response.data);
             } else {
-                showSnackbar('Producto no encontrado', 'warning');
-                setSearchByName('');
+                showSnackbar('No se encontraron productos', 'info');
+                setSuggestions([]);
             }
         } catch (err) {
             showSnackbar('Error al buscar el producto', 'error');
+            setSuggestions([]);
         }
     };
 
@@ -238,8 +231,8 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                 productId: String(product.id),
                 productName: product.nombre,
                 quantity: 1,
-                unitPrice: product.precio,
-                total: product.precio,
+                unitPrice: product.precioVenta,
+                total: product.precioVenta,
                 maxStock: product.stock
             };
             setItems([...items, newItem]);
@@ -370,7 +363,11 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                             <Button
                                 variant="outlined"
                                 onClick={handleAddByBarcode}
-                                sx={{ minWidth: 120 }}
+                                sx={{
+                                    minWidth: 120,
+                                    alignSelf: 'flex-start',
+                                    mt: '8px' // Alinear con el input (label height)
+                                }}
                             >
                                 Buscar
                             </Button>
@@ -383,6 +380,7 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                                     placeholder="Buscar por nombre..."
                                     value={searchByName}
                                     onChange={(e) => setSearchByName(e.target.value)}
+                                    helperText="Escribe para ver sugerencias automáticamente"
                                     onKeyPress={(e) => {
                                         if (e.key === 'Enter') {
                                             e.preventDefault();
@@ -397,7 +395,11 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                                 <Button
                                     variant="outlined"
                                     onClick={handleAddByName}
-                                    sx={{ minWidth: 120 }}
+                                    sx={{
+                                        minWidth: 120,
+                                        alignSelf: 'flex-start',
+                                        mt: '8px' // Alinear con el input (label height)
+                                    }}
                                 >
                                     Buscar
                                 </Button>
@@ -454,7 +456,7 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                                                     </Typography>
                                                 </Box>
                                                 <Typography variant="body2" fontWeight={700} sx={{ color: '#0f172a' }}>
-                                                    ${product.precio.toLocaleString('es-AR')}
+                                                    ${product.precioVenta.toLocaleString('es-AR')}
                                                 </Typography>
                                             </Box>
                                         </Box>

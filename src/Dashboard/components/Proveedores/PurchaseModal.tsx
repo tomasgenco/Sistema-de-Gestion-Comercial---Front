@@ -21,7 +21,8 @@ import {
     Select,
     MenuItem,
     FormControl,
-    InputLabel
+    InputLabel,
+    Alert
 } from '@mui/material';
 import { MdClose, MdSearch, MdAdd, MdRemove, MdDelete } from 'react-icons/md';
 import type { Provider, PurchaseItem } from './ProveedoresContent';
@@ -38,7 +39,7 @@ interface PurchaseModalProps {
 interface ProductoAPI {
     id: number;
     nombre: string;
-    precio: number;
+    precioCompra: number; // Precio de compra al proveedor
     sku: string;
     stock: number;
 }
@@ -122,8 +123,8 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                 productId: productId,
                 productName: product.nombre,
                 quantity: 1,
-                unitPrice: product.precio,
-                total: product.precio
+                unitPrice: product.precioCompra,
+                total: product.precioCompra
             };
             setItems([...items, newItem]);
         }
@@ -244,6 +245,26 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                             Buscar Productos
                         </Typography>
 
+                        {/* Alert informativo */}
+                        <Alert
+                            severity="info"
+                            sx={{
+                                mb: 2,
+                                borderRadius: 2,
+                                '& .MuiAlert-icon': {
+                                    color: '#0369a1'
+                                }
+                            }}
+                        >
+                            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                                📦 Importante: Productos en Stock
+                            </Typography>
+                            <Typography variant="caption">
+                                Los productos que agregue a esta compra deben estar previamente cargados en el módulo de Stock.
+                                Si es la primera vez que compra un producto, carguelo en Stock, con stock inicial en 0.
+                            </Typography>
+                        </Alert>
+
                         <Box sx={{ display: 'flex', gap: 2, position: 'relative', flexDirection: 'column' }}>
                             <TextField
                                 label="Nombre o SKU"
@@ -309,8 +330,8 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                                                         SKU: {product.sku} | Stock actual: {product.stock}
                                                     </Typography>
                                                 </Box>
-                                                <Typography variant="body2" fontWeight={700} sx={{ color: '#0f172a' }}>
-                                                    ${product.precio.toLocaleString('es-AR')}
+                                                <Typography variant="body2" fontWeight={700} sx={{ color: '#dc2626' }}>
+                                                    ${product.precioCompra.toLocaleString('es-AR')}
                                                 </Typography>
                                             </Box>
                                         </Box>

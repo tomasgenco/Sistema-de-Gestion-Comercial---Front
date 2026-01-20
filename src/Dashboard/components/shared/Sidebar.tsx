@@ -1,8 +1,10 @@
 import { Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { MdHexagon, MdDashboard, MdInventory, MdPointOfSale, MdPeople } from 'react-icons/md';
+import { MdDashboard, MdInventory, MdPointOfSale, MdPeople } from 'react-icons/md';
+import logo from '../../../assets/logo.png';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import SidebarItem from './SidebarItem';
+import { http } from '../../../shared/api/http';
 
 interface SidebarProps {
     activeModule: string;
@@ -32,10 +34,7 @@ const Sidebar = ({ activeModule, onModuleChange }: SidebarProps) => {
     const handleLogoutConfirm = async () => {
         try {
             // Llamar al backend para eliminar las cookies httpOnly
-            await fetch('http://localhost:8080/auth/logout', {
-                method: 'POST',
-                credentials: 'include', // Importante para enviar las cookies
-            });
+            await http.post('/auth/logout');
         } catch (error) {
             // Error silencioso
         }
@@ -66,7 +65,7 @@ const Sidebar = ({ activeModule, onModuleChange }: SidebarProps) => {
         <Box sx={{ width: 280, borderRight: '1px solid #e2e8f0', bgcolor: 'white', p: 3, display: 'flex', flexDirection: 'column' }}>
             {/* Logo */}
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 6, px: 1 }}>
-                <MdHexagon size={32} color="#0f172a" />
+                <img src={logo} alt="Logo" style={{ width: 40, height: 40 }} />
                 <Typography variant="h6" fontWeight="bold" sx={{ ml: 1.5, color: '#0f172a', letterSpacing: 1 }}>
                     STOCKEATE
                 </Typography>

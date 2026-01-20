@@ -320,7 +320,7 @@ const ProveedoresContent = () => {
             {/* Filters */}
             <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
                 <TextField
-                    placeholder="Buscar por nombre, contacto, email o CUIT... (presiona Enter)"
+                    placeholder="Buscar por nombre, contacto, email o CUIT... (presione Enter)"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -436,7 +436,7 @@ const ProveedoresContent = () => {
             {/* Filtros de compras */}
             <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
                 <TextField
-                    placeholder="Buscar por proveedor... (presiona Enter)"
+                    placeholder="Buscar por proveedor... (presione Enter)"
                     value={purchaseSearchInput}
                     onChange={(e) => setPurchaseSearchInput(e.target.value)}
                     onKeyDown={(e) => {
