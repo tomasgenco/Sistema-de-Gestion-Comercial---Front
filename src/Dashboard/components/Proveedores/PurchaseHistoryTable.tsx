@@ -215,6 +215,7 @@ const PurchaseHistoryTable = ({ purchases }: PurchaseHistoryTableProps) => {
                                                                     </Typography>
                                                                     <Typography variant="caption" color="text.secondary">
                                                                         ID: {item.productId}
+                                                                        {item.tipoVenta === 'PESO' && ' • Por Peso (kg)'}
                                                                     </Typography>
                                                                 </TableCell>
                                                                 <TableCell align="center">
@@ -230,6 +231,7 @@ const PurchaseHistoryTable = ({ purchases }: PurchaseHistoryTableProps) => {
                                                                 </TableCell>
                                                                 <TableCell align="right">
                                                                     ${item.unitPrice.toLocaleString('es-AR')}
+                                                                    {item.tipoVenta === 'PESO' && <Typography component="span" variant="caption" color="text.secondary"> /kg</Typography>}
                                                                 </TableCell>
                                                                 <TableCell align="right">
                                                                     <Typography variant="body2" fontWeight={600}>

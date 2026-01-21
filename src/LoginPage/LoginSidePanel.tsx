@@ -1,12 +1,12 @@
 import { Box, Typography } from '@mui/material';
-import loginAbstractBg from '../assets/login_abstract_bg.png';
+import loginBg from '../assets/login_abstract_bg.png';
 
 export default function LoginSidePanel() {
     return (
         <Box
             sx={{
                 flex: 1.5,
-                backgroundImage: `url(${loginAbstractBg})`,
+                backgroundImage: `url(${loginBg})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 display: 'flex',
@@ -21,7 +21,7 @@ export default function LoginSidePanel() {
                     left: 0,
                     width: '100%',
                     height: '100%',
-                    background: 'linear-gradient(to top, rgba(138, 43, 226, 0.9) 0%, rgba(138, 43, 226, 0.4) 40%, rgba(138, 43, 226, 0) 100%)', // Violet gradient upwards
+                    background: 'linear-gradient(to top, rgba(25, 118, 210, 0.9) 0%, rgba(25, 118, 210, 0.4) 40%, rgba(25, 118, 210, 0) 100%)', // Blue gradient upwards
                     zIndex: 1,
                 }
             }}

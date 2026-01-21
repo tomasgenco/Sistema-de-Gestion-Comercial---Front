@@ -9,7 +9,11 @@ import {
     Box,
     IconButton,
     CircularProgress,
-    Alert
+    Alert,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem
 } from '@mui/material';
 import { MdClose } from 'react-icons/md';
 import { http } from '../../../shared/api/http';
@@ -25,8 +29,9 @@ interface ProductoRequest {
     nombre: string;
     precioVenta: number;
     precioCompra: number;
-    sku: string;
-    stock: number;
+    sku: string | null;
+    stock: number; // BigDecimal en backend, soporta decimales
+    tipoVenta: 'UNIDAD' | 'PESO';
 }
 
 // Tipo para la respuesta del backend
@@ -36,7 +41,8 @@ interface ProductoResponse {
     precioVenta: number;
     precioCompra: number;
     sku: string;
-    stock: number;
+    stock: number; // BigDecimal en backend, soporta decimales
+    tipoVenta: 'UNIDAD' | 'PESO';
 }
 
 const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
@@ -45,16 +51,17 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
     const [price, setPrice] = useState(''); // Precio de venta
     const [precioCompra, setPrecioCompra] = useState(''); // Precio de compra
     const [stock, setStock] = useState('');
+    const [tipoVenta, setTipoVenta] = useState<'UNIDAD' | 'PESO'>('UNIDAD');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleAdd = async () => {
-        if (name.trim() && barcode.trim() && price.trim() && precioCompra.trim() && stock.trim()) {
+        if (name.trim() && price.trim() && precioCompra.trim() && stock.trim()) {
             try {
                 setLoading(true);
                 setError(null);
 
-                const stockNum = parseInt(stock);
+                const stockNum = parseFloat(stock); // Cambiar a parseFloat para soportar decimales
                 const priceNum = parseFloat(price);
                 const precioCompraNum = parseFloat(precioCompra);
 
@@ -70,8 +77,9 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                     nombre: name.trim(),
                     precioVenta: priceNum,
                     precioCompra: precioCompraNum,
-                    sku: barcode.trim(),
-                    stock: stockNum
+                    sku: barcode.trim() || null,
+                    stock: stockNum,
+                    tipoVenta: tipoVenta
                 };
 
                 // Hacer POST al backend
@@ -94,6 +102,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
         setPrice('');
         setPrecioCompra('');
         setStock('');
+        setTipoVenta('UNIDAD');
         setError(null);
         onClose();
     };
@@ -137,7 +146,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                         disabled={loading}
                     />
                     <TextField
-                        label="SKU"
+                        label="SKU (Opcional)"
                         value={barcode}
                         onChange={(e) => setBarcode(e.target.value)}
                         fullWidth
@@ -147,6 +156,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                         inputProps={{
                             style: { fontFamily: 'monospace' }
                         }}
+                        helperText="Código único del producto (opcional)"
                     />
                     <TextField
                         label="Precio de Compra"
@@ -194,20 +204,42 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                             </Box>
                         </Box>
                     )}
+                    <FormControl fullWidth>
+                        <InputLabel>Tipo de Venta</InputLabel>
+                        <Select
+                            value={tipoVenta}
+                            label="Tipo de Venta"
+                            onChange={(e) => setTipoVenta(e.target.value as 'UNIDAD' | 'PESO')}
+                            disabled={loading}
+                        >
+                            <MenuItem value="UNIDAD">Por Unidad</MenuItem>
+                            <MenuItem value="PESO">Por Peso (Kg)</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    {tipoVenta === 'PESO' && (
+                        <Alert severity="info" sx={{ borderRadius: 2 }}>
+                            <strong>Importante:</strong> Los precios de compra y venta deben ser por kilogramo ($/Kg)
+                        </Alert>
+                    )}
+
                     <TextField
-                        label="Stock Inicial"
+                        label={tipoVenta === 'PESO' ? "Stock Inicial (Kg)" : "Stock Inicial"}
                         value={stock}
                         onChange={(e) => {
                             const value = e.target.value;
-                            if (value === '' || /^\d+$/.test(value)) {
+                            // Permitir decimales si es por peso, solo enteros si es por unidad
+                            const regex = tipoVenta === 'PESO' ? /^\d*\.?\d*$/ : /^\d+$/;
+                            if (value === '' || regex.test(value)) {
                                 setStock(value);
                             }
                         }}
                         fullWidth
                         variant="outlined"
                         type="text"
-                        placeholder="Cantidad de unidades"
+                        placeholder={tipoVenta === 'PESO' ? "Cantidad en kilogramos" : "Cantidad de unidades"}
                         disabled={loading}
+                        helperText={tipoVenta === 'PESO' ? "Puede ingresar decimales (ej: 2.5)" : "Solo números enteros"}
                     />
                 </Box>
             </DialogContent>
@@ -233,7 +265,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
                 <Button
                     onClick={handleAdd}
                     variant="contained"
-                    disabled={!name.trim() || !barcode.trim() || !price.trim() || !precioCompra.trim() || !stock.trim() || loading}
+                    disabled={!name.trim() || !price.trim() || !precioCompra.trim() || !stock.trim() || loading}
                     sx={{
                         borderRadius: 2,
                         textTransform: 'none',

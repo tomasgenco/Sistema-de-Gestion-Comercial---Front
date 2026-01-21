@@ -41,8 +41,76 @@ interface ProductoAPI {
     nombre: string;
     precioCompra: number; // Precio de compra al proveedor
     sku: string;
-    stock: number;
+    stock: number; // BigDecimal en backend, soporta decimales
+    tipoVenta: 'UNIDAD' | 'PESO';
 }
+
+// Componente para manejar el input de cantidad con estado local
+interface QuantityInputProps {
+    item: PurchaseItem;
+    onQuantityChange: (productId: string, newQuantity: number) => void;
+}
+
+const QuantityInput = ({ item, onQuantityChange }: QuantityInputProps) => {
+    const [inputValue, setInputValue] = useState<string>(item.quantity === 0 ? '' : String(item.quantity));
+
+    // Sincronizar con cambios externos (ej: botones +/-)
+    useEffect(() => {
+        setInputValue(item.quantity === 0 ? '' : String(item.quantity));
+    }, [item.quantity]);
+
+    const handleChange = (value: string) => {
+        // Permitir campo vacío
+        if (value === '') {
+            setInputValue('');
+            onQuantityChange(item.productId, 0);
+            return;
+        }
+
+        // Permitir decimales si es por peso, solo enteros si es por unidad
+        const regex = item.tipoVenta === 'PESO' ? /^\d*\.?\d*$/ : /^\d*$/;
+
+        if (regex.test(value)) {
+            setInputValue(value);
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue)) {
+                onQuantityChange(item.productId, numValue);
+            }
+        }
+    };
+
+    const handleBlur = () => {
+        // Si el campo está vacío o es 0 al perder el foco, establecer en 1
+        if (inputValue === '' || parseFloat(inputValue) === 0) {
+            setInputValue('1');
+            onQuantityChange(item.productId, 1);
+        }
+    };
+
+    return (
+        <TextField
+            value={inputValue}
+            onChange={(e) => handleChange(e.target.value)}
+            onBlur={handleBlur}
+            size="small"
+            sx={{
+                width: 80,
+                '& input': {
+                    textAlign: 'center',
+                    fontWeight: 600,
+                    padding: '6px 8px'
+                },
+                '& .MuiOutlinedInput-root': {
+                    bgcolor: '#f8fafc',
+                    borderRadius: 2
+                }
+            }}
+            inputProps={{
+                style: { textAlign: 'center' }
+            }}
+        />
+    );
+};
 
 const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) => {
     const [items, setItems] = useState<PurchaseItem[]>([]);
@@ -115,16 +183,20 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
 
         if (existingItemIndex >= 0) {
             const newItems = [...items];
+            // Incrementar en 1 (ya sea 1 kg o 1 unidad)
             newItems[existingItemIndex].quantity += 1;
             newItems[existingItemIndex].total = newItems[existingItemIndex].quantity * newItems[existingItemIndex].unitPrice;
             setItems(newItems);
         } else {
+            // Cantidad inicial: 1 kg para PESO, 1 unidad para UNIDAD
+            const initialQuantity = 1;
             const newItem: PurchaseItem = {
                 productId: productId,
                 productName: product.nombre,
-                quantity: 1,
+                quantity: initialQuantity,
                 unitPrice: product.precioCompra,
-                total: product.precioCompra
+                total: product.precioCompra * initialQuantity,
+                tipoVenta: product.tipoVenta
             };
             setItems([...items, newItem]);
         }
@@ -135,7 +207,8 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
     };
 
     const handleQuantityChange = (productId: string, newQuantity: number) => {
-        if (newQuantity <= 0) {
+        // Solo eliminar si es menor a 0 (botón menos)
+        if (newQuantity < 0) {
             setItems(items.filter(item => item.productId !== productId));
         } else {
             setItems(items.map(item => {
@@ -391,6 +464,7 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                                                     </Typography>
                                                     <Typography variant="caption" color="text.secondary">
                                                         ID: {item.productId}
+                                                        {item.tipoVenta === 'PESO' && ' • Por Peso (kg)'}
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell align="center">
@@ -406,20 +480,7 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                                                         >
                                                             <MdRemove size={16} />
                                                         </IconButton>
-                                                        <Typography
-                                                            variant="body1"
-                                                            fontWeight={600}
-                                                            sx={{
-                                                                minWidth: 40,
-                                                                textAlign: 'center',
-                                                                bgcolor: '#f8fafc',
-                                                                py: 0.5,
-                                                                px: 1.5,
-                                                                borderRadius: 2
-                                                            }}
-                                                        >
-                                                            {item.quantity}
-                                                        </Typography>
+                                                        <QuantityInput item={item} onQuantityChange={handleQuantityChange} />
                                                         <IconButton
                                                             size="small"
                                                             onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
@@ -436,6 +497,7 @@ const PurchaseModal = ({ open, provider, onClose, onSave }: PurchaseModalProps) 
                                                 <TableCell align="right">
                                                     <Typography variant="body2" fontWeight={500}>
                                                         ${item.unitPrice.toLocaleString('es-AR')}
+                                                        {item.tipoVenta === 'PESO' && <Typography component="span" variant="caption" color="text.secondary"> /kg</Typography>}
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell align="right">

@@ -9,7 +9,11 @@ import {
     Box,
     IconButton,
     CircularProgress,
-    Alert
+    Alert,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem
 } from '@mui/material';
 import { MdClose } from 'react-icons/md';
 import type { Product } from './ProductTable';
@@ -27,6 +31,7 @@ interface EditProductoRequest {
     nombre: string;
     precioVenta: number;
     precioCompra: number;
+    tipoVenta: 'UNIDAD' | 'PESO';
 }
 
 // Tipo para la respuesta del backend
@@ -36,13 +41,15 @@ interface EditProductoResponse {
     precioVenta: number;
     precioCompra: number;
     sku: string;
-    stock: number;
+    stock: number; // BigDecimal en backend, soporta decimales
+    tipoVenta: 'UNIDAD' | 'PESO';
 }
 
 const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalProps) => {
     const [name, setName] = useState('');
     const [price, setPrice] = useState(''); // Precio de venta
     const [precioCompra, setPrecioCompra] = useState(''); // Precio de compra
+    const [tipoVenta, setTipoVenta] = useState<'UNIDAD' | 'PESO'>('UNIDAD');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +58,8 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
             setName(product.name);
             setPrice(product.price.toString());
             setPrecioCompra(product.precioCompra.toString());
+            // Si el producto tiene tipoVenta, usarlo; sino, por defecto UNIDAD
+            setTipoVenta(product.tipoVenta || 'UNIDAD');
         }
     }, [product]);
 
@@ -74,7 +83,8 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
                 const requestData: EditProductoRequest = {
                     nombre: name.trim(),
                     precioVenta: priceNum,
-                    precioCompra: precioCompraNum
+                    precioCompra: precioCompraNum,
+                    tipoVenta: tipoVenta
                 };
 
                 // Hacer PUT al backend
@@ -97,7 +107,8 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
                     precioCompra: response.data.precioCompra,
                     margen: margen,
                     stock: response.data.stock,
-                    status: response.data.stock === 0 ? 'out' : response.data.stock <= 5 ? 'low' : 'available'
+                    status: response.data.stock === 0 ? 'out' : response.data.stock <= 5 ? 'low' : 'available',
+                    tipoVenta: response.data.tipoVenta
                 };
 
                 onSave(updatedProduct);
@@ -114,6 +125,7 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
         setName('');
         setPrice('');
         setPrecioCompra('');
+        setTipoVenta('UNIDAD');
         setError(null);
         onClose();
     };
@@ -194,6 +206,25 @@ const EditProductModal = ({ open, product, onClose, onSave }: EditProductModalPr
                         }}
                         helperText="Precio al que vendes el producto"
                     />
+
+                    <FormControl fullWidth variant="outlined" disabled={loading}>
+                        <InputLabel>Tipo de Venta</InputLabel>
+                        <Select
+                            value={tipoVenta}
+                            onChange={(e) => setTipoVenta(e.target.value as 'UNIDAD' | 'PESO')}
+                            label="Tipo de Venta"
+                        >
+                            <MenuItem value="UNIDAD">Por Unidad</MenuItem>
+                            <MenuItem value="PESO">Por Peso (kg)</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    {tipoVenta === 'PESO' && (
+                        <Alert severity="info" sx={{ borderRadius: 2 }}>
+                            <strong>Importante:</strong> Los precios de compra y venta deben ser por kilogramo ($/Kg)
+                        </Alert>
+                    )}
+
                     {precioCompra && price && parseFloat(price) > parseFloat(precioCompra) && (
                         <Box sx={{ p: 2, bgcolor: '#dcfce7', borderRadius: 2, border: '1px solid #16a34a' }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

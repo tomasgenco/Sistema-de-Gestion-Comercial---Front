@@ -21,7 +21,8 @@ interface ProductoAPI {
     precioVenta: number; // Precio de venta
     precioCompra: number; // Precio de compra
     sku: string;
-    stock: number;
+    stock: number; // BigDecimal en backend, soporta decimales
+    tipoVenta: 'UNIDAD' | 'PESO';
 }
 
 // Tipo para la respuesta paginada del backend
@@ -97,7 +98,8 @@ const StockContent = () => {
                             precioCompra: producto.precioCompra,
                             margen: margen,
                             stock: producto.stock,
-                            status: getProductStatus(producto.stock)
+                            status: getProductStatus(producto.stock),
+                            tipoVenta: producto.tipoVenta
                         };
                     });
 
@@ -135,7 +137,8 @@ const StockContent = () => {
                             precioCompra: producto.precioCompra,
                             margen: margen,
                             stock: producto.stock,
-                            status: getProductStatus(producto.stock)
+                            status: getProductStatus(producto.stock),
+                            tipoVenta: producto.tipoVenta
                         };
                     });
 
@@ -170,7 +173,8 @@ const StockContent = () => {
                             precioCompra: producto.precioCompra,
                             margen: margen,
                             stock: producto.stock,
-                            status: getProductStatus(producto.stock)
+                            status: getProductStatus(producto.stock),
+                            tipoVenta: producto.tipoVenta
                         };
                     });
 

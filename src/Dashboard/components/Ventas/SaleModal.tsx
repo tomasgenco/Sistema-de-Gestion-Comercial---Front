@@ -35,7 +35,8 @@ interface ProductoAPI {
     nombre: string;
     sku: string;
     precioVenta: number;
-    stock: number;
+    stock: number; // BigDecimal en backend, soporta decimales
+    tipoVenta: 'UNIDAD' | 'PESO';
 }
 
 // Mapear método de pago del frontend al backend
@@ -219,38 +220,44 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
             const currentQuantity = newItems[existingItemIndex].quantity;
 
             if (currentQuantity >= product.stock) {
-                showSnackbar(`Stock máximo alcanzado (${product.stock} unidades)`, 'warning');
+                const unit = product.tipoVenta === 'PESO' ? 'kg' : 'unidades';
+                showSnackbar(`Stock máximo alcanzado (${product.stock} ${unit})`, 'warning');
                 return;
             }
 
+            // Incrementar en 1 (ya sea 1 kg o 1 unidad)
             newItems[existingItemIndex].quantity += 1;
             newItems[existingItemIndex].total = newItems[existingItemIndex].quantity * newItems[existingItemIndex].unitPrice;
             setItems(newItems);
         } else {
+            // Cantidad inicial: 1 kg para PESO, 1 unidad para UNIDAD
+            const initialQuantity = 1;
             const newItem: SaleItem = {
                 productId: String(product.id),
                 productName: product.nombre,
-                quantity: 1,
+                quantity: initialQuantity,
                 unitPrice: product.precioVenta,
-                total: product.precioVenta,
-                maxStock: product.stock
+                total: product.precioVenta * initialQuantity,
+                maxStock: product.stock,
+                tipoVenta: product.tipoVenta
             };
             setItems([...items, newItem]);
         }
     };
 
     const handleQuantityChange = (productId: string, newQuantity: number) => {
-        if (newQuantity <= 0) {
+        // Solo eliminar el producto si la cantidad es menor a 0 (viene del botón -)
+        if (newQuantity < 0) {
             setItems(items.filter(item => item.productId !== productId));
             return;
         }
 
         setItems(items.map(item => {
             if (item.productId === productId) {
-                // Validación local usando el stock guardado
+                // Mostrar advertencia si excede el stock, pero permitir el cambio
                 if (item.maxStock !== undefined && newQuantity > item.maxStock) {
-                    showSnackbar(`Stock máximo: ${item.maxStock} unidades`, 'warning');
-                    return item; // Retornar item sin cambios
+                    const unit = item.tipoVenta === 'PESO' ? 'kg' : 'unidades';
+                    showSnackbar(`Stock máximo: ${item.maxStock} ${unit}`, 'warning');
                 }
 
                 return {
@@ -269,6 +276,16 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
 
     const calculateTotal = () => {
         return items.reduce((sum, item) => sum + item.total, 0);
+    };
+
+    // Verificar si algún item excede el stock disponible
+    const hasStockExceeded = () => {
+        return items.some(item => {
+            if (item.maxStock !== undefined) {
+                return item.quantity > item.maxStock;
+            }
+            return false;
+        });
     };
 
     const handleSaveClick = () => {
@@ -517,6 +534,14 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                     </Box>
                 </DialogContent>
 
+                {hasStockExceeded() && (
+                    <Box sx={{ px: 3, pb: 2 }}>
+                        <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 600 }}>
+                            ⚠️ Algunos productos exceden el stock disponible. Ajuste las cantidades para continuar.
+                        </Typography>
+                    </Box>
+                )}
+
                 <DialogActions sx={{ p: 3, gap: 2 }}>
                     <Button
                         onClick={onClose}
@@ -533,7 +558,7 @@ const SaleModal = ({ open, onClose, onSave }: SaleModalProps) => {
                     <Button
                         onClick={handleSaveClick}
                         variant="contained"
-                        disabled={items.length === 0}
+                        disabled={items.length === 0 || hasStockExceeded()}
                         sx={{
                             bgcolor: '#0f172a',
                             borderRadius: 2,

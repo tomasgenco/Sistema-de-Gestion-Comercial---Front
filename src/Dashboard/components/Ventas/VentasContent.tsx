@@ -21,6 +21,7 @@ export interface SaleItem {
     unitPrice: number;
     total: number;
     maxStock?: number; // Para validación local sin ir al servidor
+    tipoVenta?: 'UNIDAD' | 'PESO'; // Para saber si se vende por peso o unidad
 }
 
 // Tipo de dato que viene del backend
@@ -35,8 +36,9 @@ interface VentaAPI {
 interface DetalleVentaAPI {
     id: number;
     nombreProducto: string;
-    cantidad: number;
+    cantidad: number; // BigDecimal en backend, soporta decimales para ventas por peso
     precioUnitario: number;
+    tipoVenta?: 'UNIDAD' | 'PESO'; // Tipo de venta del producto
 }
 
 // Tipo para la respuesta paginada del backend
@@ -127,7 +129,8 @@ const VentasContent = () => {
                             productName: detalle.nombreProducto,
                             quantity: detalle.cantidad,
                             unitPrice: detalle.precioUnitario,
-                            total: detalle.cantidad * detalle.precioUnitario
+                            total: detalle.cantidad * detalle.precioUnitario,
+                            tipoVenta: detalle.tipoVenta
                         }))
                     }));
 
@@ -152,7 +155,8 @@ const VentasContent = () => {
                             productName: detalle.nombreProducto,
                             quantity: detalle.cantidad,
                             unitPrice: detalle.precioUnitario,
-                            total: detalle.cantidad * detalle.precioUnitario
+                            total: detalle.cantidad * detalle.precioUnitario,
+                            tipoVenta: detalle.tipoVenta
                         }))
                     }));
 

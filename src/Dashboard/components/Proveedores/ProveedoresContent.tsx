@@ -63,6 +63,7 @@ export interface PurchaseItem {
     quantity: number;
     unitPrice: number;
     total: number;
+    tipoVenta?: 'UNIDAD' | 'PESO'; // Para saber si se vende por peso o unidad
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -221,7 +222,8 @@ const ProveedoresContent = () => {
                         productName: detalle.nombreProducto || detalle.producto?.nombre || 'Producto',
                         quantity: detalle.cantidad || 0,
                         unitPrice: detalle.precioUnitario || 0,
-                        total: (detalle.cantidad || 0) * (detalle.precioUnitario || 0)
+                        total: (detalle.cantidad || 0) * (detalle.precioUnitario || 0),
+                        tipoVenta: detalle.producto?.tipoVenta || detalle.tipoVenta
                     }));
 
                     return {

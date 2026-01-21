@@ -21,6 +21,7 @@ export interface Product {
     margen: number; // Margen de ganancia en porcentaje
     stock: number;
     status: 'available' | 'low' | 'out';
+    tipoVenta: 'UNIDAD' | 'PESO';
 }
 
 interface ProductTableProps {
@@ -103,7 +104,9 @@ const ProductTable = ({ products, onEdit }: ProductTableProps) => {
                                             }}
                                         />
                                     </TableCell>
-                                    <TableCell sx={{ fontWeight: 500 }}>{product.stock} unidades</TableCell>
+                                    <TableCell sx={{ fontWeight: 500 }}>
+                                        {product.stock} {product.tipoVenta === 'PESO' ? 'kg' : 'unidades'}
+                                    </TableCell>
                                     <TableCell>
                                         <Chip
                                             label={getStatusLabel(product.status)}

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
     Table,
     TableBody,
@@ -8,7 +9,8 @@ import {
     Paper,
     IconButton,
     Box,
-    Typography
+    Typography,
+    TextField
 } from '@mui/material';
 import { MdAdd, MdRemove, MdDelete } from 'react-icons/md';
 import type { SaleItem } from './VentasContent';
@@ -18,6 +20,77 @@ interface SaleDetailTableProps {
     onQuantityChange: (productId: string, newQuantity: number) => void;
     onRemoveItem: (productId: string) => void;
 }
+
+// Componente para manejar el input de cantidad con estado local
+interface QuantityInputProps {
+    item: SaleItem;
+    onQuantityChange: (productId: string, newQuantity: number) => void;
+}
+
+const QuantityInput = ({ item, onQuantityChange }: QuantityInputProps) => {
+    const [inputValue, setInputValue] = useState<string>(item.quantity === 0 ? '' : String(item.quantity));
+
+    // Sincronizar con cambios externos (ej: botones +/-)
+    useEffect(() => {
+        setInputValue(item.quantity === 0 ? '' : String(item.quantity));
+    }, [item.quantity]);
+
+    const handleChange = (value: string) => {
+        // Permitir campo vacío
+        if (value === '') {
+            setInputValue('');
+            onQuantityChange(item.productId, 0);
+            return;
+        }
+
+        // Permitir decimales si es por peso, solo enteros si es por unidad
+        const regex = item.tipoVenta === 'PESO' ? /^\d*\.?\d*$/ : /^\d*$/;
+
+        if (regex.test(value)) {
+            setInputValue(value);
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue)) {
+                onQuantityChange(item.productId, numValue);
+            }
+        }
+    };
+
+    const handleBlur = () => {
+        // Si el campo está vacío o es 0 al perder el foco, establecer en 1
+        if (inputValue === '' || parseFloat(inputValue) === 0) {
+            setInputValue('1');
+            onQuantityChange(item.productId, 1);
+        }
+    };
+
+    // Verificar si excede el stock
+    const exceedsStock = item.maxStock !== undefined && item.quantity > item.maxStock;
+
+    return (
+        <TextField
+            value={inputValue}
+            onChange={(e) => handleChange(e.target.value)}
+            onBlur={handleBlur}
+            size="small"
+            error={exceedsStock}
+            sx={{
+                width: 80,
+                '& input': {
+                    textAlign: 'center',
+                    fontWeight: 600,
+                    padding: '6px 8px'
+                },
+                '& .MuiOutlinedInput-root': {
+                    bgcolor: exceedsStock ? '#fee2e2' : '#f8fafc',
+                    borderRadius: 2
+                }
+            }}
+            inputProps={{
+                style: { textAlign: 'center' }
+            }}
+        />
+    );
+};
 
 const SaleDetailTable = ({ items, onQuantityChange, onRemoveItem }: SaleDetailTableProps) => {
     if (items.length === 0) {
@@ -77,6 +150,7 @@ const SaleDetailTable = ({ items, onQuantityChange, onRemoveItem }: SaleDetailTa
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
                                     ID: {item.productId}
+                                    {item.tipoVenta === 'PESO' && ' • Por Peso (kg)'}
                                 </Typography>
                             </TableCell>
                             <TableCell align="center">
@@ -94,20 +168,7 @@ const SaleDetailTable = ({ items, onQuantityChange, onRemoveItem }: SaleDetailTa
                                     >
                                         <MdRemove size={16} />
                                     </IconButton>
-                                    <Typography
-                                        variant="body1"
-                                        fontWeight={600}
-                                        sx={{
-                                            minWidth: 40,
-                                            textAlign: 'center',
-                                            bgcolor: '#f8fafc',
-                                            py: 0.5,
-                                            px: 1.5,
-                                            borderRadius: 2
-                                        }}
-                                    >
-                                        {item.quantity}
-                                    </Typography>
+                                    <QuantityInput item={item} onQuantityChange={onQuantityChange} />
                                     <IconButton
                                         size="small"
                                         onClick={() => onQuantityChange(item.productId, item.quantity + 1)}
@@ -126,6 +187,7 @@ const SaleDetailTable = ({ items, onQuantityChange, onRemoveItem }: SaleDetailTa
                             <TableCell align="right">
                                 <Typography variant="body2" fontWeight={500}>
                                     ${item.unitPrice.toLocaleString('es-AR')}
+                                    {item.tipoVenta === 'PESO' && <Typography component="span" variant="caption" color="text.secondary"> /kg</Typography>}
                                 </Typography>
                             </TableCell>
                             <TableCell align="right">
