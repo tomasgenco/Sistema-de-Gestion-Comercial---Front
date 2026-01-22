@@ -1,5 +1,5 @@
 import { Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { MdDashboard, MdInventory, MdPointOfSale, MdPeople } from 'react-icons/md';
+import { MdDashboard, MdInventory, MdPointOfSale, MdPeople, MdAccountBalance } from 'react-icons/md';
 import logo from '../../../assets/logo.png';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -96,6 +96,17 @@ const Sidebar = ({ activeModule, onModuleChange }: SidebarProps) => {
                     active={activeModule === 'Ventas'}
                     onClick={() => onModuleChange('Ventas')}
                 />
+
+                {/* Finanzas - Solo visible para admins */}
+                {rawRole !== 'VENDEDOR' && (
+                    <SidebarItem
+                        icon={MdAccountBalance}
+                        label="Finanzas"
+                        description="Gestión financiera"
+                        active={activeModule === 'Finanzas'}
+                        onClick={() => onModuleChange('Finanzas')}
+                    />
+                )}
 
                 {/* Stock - Solo visible para admins */}
                 {rawRole !== 'VENDEDOR' && (

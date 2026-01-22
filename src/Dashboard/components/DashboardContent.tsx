@@ -3,6 +3,7 @@ import { PrincipalContent } from './Principal';
 import { StockContent } from './Stock';
 import { VentasContent } from './Ventas';
 import { ProveedoresContent } from './Proveedores';
+import { FinanzasContent } from './Finanzas';
 
 
 interface DashboardContentProps {
@@ -24,6 +25,8 @@ const DashboardContent = ({ activeModule }: DashboardContentProps) => {
         case 'Proveedores':
             return <ProveedoresContent />;
 
+        case 'Finanzas':
+            return <FinanzasContent />;
 
         default:
             return (

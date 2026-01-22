@@ -214,8 +214,8 @@ const PurchaseHistoryTable = ({ purchases }: PurchaseHistoryTableProps) => {
                                                                         {item.productName}
                                                                     </Typography>
                                                                     <Typography variant="caption" color="text.secondary">
-                                                                        ID: {item.productId}
-                                                                        {item.tipoVenta === 'PESO' && ' • Por Peso (kg)'}
+                                                                        ID: {item.productId}{item.tipoVenta === 'PESO' ? ' (kg)' : ''}
+
                                                                     </Typography>
                                                                 </TableCell>
                                                                 <TableCell align="center">

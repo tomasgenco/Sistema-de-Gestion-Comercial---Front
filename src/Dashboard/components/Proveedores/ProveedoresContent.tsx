@@ -218,18 +218,18 @@ const ProveedoresContent = () => {
 
                     // Mapear los detalles (items) de la compra
                     const mappedItems = (compra.detalles || []).map((detalle: any) => ({
-                        productId: String(detalle.producto?.id || ''),
-                        productName: detalle.nombreProducto || detalle.producto?.nombre || 'Producto',
+                        productId: String(detalle.productoId || ''),
+                        productName: detalle.nombreProducto || 'Producto',
                         quantity: detalle.cantidad || 0,
                         unitPrice: detalle.precioUnitario || 0,
                         total: (detalle.cantidad || 0) * (detalle.precioUnitario || 0),
-                        tipoVenta: detalle.producto?.tipoVenta || detalle.tipoVenta
+                        tipoVenta: detalle.tipoVenta
                     }));
 
                     return {
                         id: String(compra.id),
                         providerId: compra.proveedor?.id || 0,
-                        providerName: compra.proveedor?.nombreEmpresa || 'Proveedor desconocido',
+                        providerName: compra.nombreProveedor || 'Proveedor desconocido',
                         date: compra.fechaHora || new Date().toISOString(),
                         total: compra.total || mappedItems.reduce((sum: number, item: any) => sum + item.total, 0),
                         items: mappedItems,

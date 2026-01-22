@@ -1,15 +1,15 @@
 import { Grid } from '@mui/material';
 import { Card, CardContent, Typography, Box } from '@mui/material';
-import { MdInventory, MdTrendingDown, MdAttachMoney, MdRemoveShoppingCart } from 'react-icons/md';
+import { MdInventory, MdTrendingDown, MdRemoveShoppingCart } from 'react-icons/md';
 
 interface StockStatsProps {
     totalProducts: number;
     lowStockProducts: number;
     outOfStockProducts: number;
-    totalValue: number;
+    totalValue: number; // Mantener para compatibilidad pero no usar
 }
 
-const StockStats = ({ totalProducts, lowStockProducts, outOfStockProducts, totalValue }: StockStatsProps) => {
+const StockStats = ({ totalProducts, lowStockProducts, outOfStockProducts }: StockStatsProps) => {
     const stats = [
         {
             title: 'Total Productos',
@@ -31,13 +31,6 @@ const StockStats = ({ totalProducts, lowStockProducts, outOfStockProducts, total
             icon: MdRemoveShoppingCart,
             color: '#ef4444',
             bgColor: '#fee2e2'
-        },
-        {
-            title: 'Valor Total',
-            value: `$${totalValue.toLocaleString('es-AR')}`,
-            icon: MdAttachMoney,
-            color: '#10b981',
-            bgColor: '#d1fae5'
         }
     ];
 
@@ -46,7 +39,7 @@ const StockStats = ({ totalProducts, lowStockProducts, outOfStockProducts, total
             {stats.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
-                    <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
+                    <Grid key={index} size={{ xs: 12, sm: 6, md: 4 }}>
                         <Card
                             elevation={0}
                             sx={{

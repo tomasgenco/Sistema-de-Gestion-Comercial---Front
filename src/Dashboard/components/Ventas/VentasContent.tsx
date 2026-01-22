@@ -3,7 +3,6 @@ import { Box, Typography, Button, Pagination, CircularProgress, TextField, Selec
 import { MdAdd, MdSearch } from 'react-icons/md';
 import SaleModal from '../Ventas/SaleModal';
 import SalesSearchTable from '../Ventas/SalesSearchTable';
-import VentasStats from '../Ventas/VentasStats';
 import { http } from '../../../shared/api/http';
 
 export interface Sale {
@@ -34,11 +33,11 @@ interface VentaAPI {
 }
 
 interface DetalleVentaAPI {
-    id: number;
+    productoId: number;
     nombreProducto: string;
     cantidad: number; // BigDecimal en backend, soporta decimales para ventas por peso
     precioUnitario: number;
-    tipoVenta?: 'UNIDAD' | 'PESO'; // Tipo de venta del producto
+    tipoVenta?: 'UNIDAD' | 'PESO'; // Tipo de venta del producto (snapshot)
 }
 
 // Tipo para la respuesta paginada del backend
@@ -125,7 +124,7 @@ const VentasContent = () => {
                         paymentMethod: mapPaymentMethod(venta.metodoPago),
                         total: venta.total,
                         items: (venta.detalles || []).map(detalle => ({
-                            productId: String(detalle.id),
+                            productId: String(detalle.productoId),
                             productName: detalle.nombreProducto,
                             quantity: detalle.cantidad,
                             unitPrice: detalle.precioUnitario,
@@ -151,7 +150,7 @@ const VentasContent = () => {
                         paymentMethod: mapPaymentMethod(venta.metodoPago),
                         total: venta.total,
                         items: (venta.detalles || []).map(detalle => ({
-                            productId: String(detalle.id),
+                            productId: String(detalle.productoId),
                             productName: detalle.nombreProducto,
                             quantity: detalle.cantidad,
                             unitPrice: detalle.precioUnitario,
@@ -175,36 +174,6 @@ const VentasContent = () => {
 
         fetchVentas();
     }, [currentPage, refreshTrigger, isSearchActive, activePaymentMethod, activeSearchDate]);
-
-    // Estados para estadísticas
-    const [todayCount, setTodayCount] = useState(0);
-    const [todayTotal, setTodayTotal] = useState(0);
-    const [averageSale, setAverageSale] = useState(0);
-
-    // Cargar estadísticas desde el backend
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const response = await http.get<{
-                    ventasDelMes: number;
-                    ingresosTotalesDelDia: number;
-                    egresosDelDia: number;
-                    ventasDelDia: number;
-                }>('/ventas/stats');
-
-                setTodayCount(response.data.ventasDelDia);
-                setTodayTotal(response.data.ingresosTotalesDelDia);
-                setAverageSale(response.data.ventasDelDia > 0 ? response.data.ingresosTotalesDelDia / response.data.ventasDelDia : 0); //promedio del dia
-            } catch (err: any) {
-                // Si falla, mantener valores en 0
-                setTodayCount(0);
-                setTodayTotal(0);
-                setAverageSale(0);
-            }
-        };
-
-        fetchStats();
-    }, [refreshTrigger]); // Recargar cuando se agrega una nueva venta
 
     const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
         setCurrentPage(page);
@@ -251,13 +220,6 @@ const VentasContent = () => {
                     Iniciar Venta
                 </Button>
             </Box>
-
-            {/* Stats */}
-            <VentasStats
-                todayCount={todayCount}
-                todayTotal={todayTotal}
-                averageSale={averageSale}
-            />
 
             {/* Search Section */}
             <Box sx={{ mb: 4, p: 3, bgcolor: '#f8fafc', borderRadius: 3, border: '1px solid #e2e8f0' }}>
