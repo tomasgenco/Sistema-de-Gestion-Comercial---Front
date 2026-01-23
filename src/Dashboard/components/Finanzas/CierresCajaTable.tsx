@@ -212,7 +212,7 @@ const CierresCajaTable = () => {
 
                     {/* Contador de resultados */}
                     <Typography variant="body2" sx={{ mb: 2, color: '#64748b' }}>
-                        Mostrando {cierresDiarios.length} de {totalElements} cierres
+                        Mostrando {cierresDiarios.length} cierres
                     </Typography>
 
                     {/* Tabla */}

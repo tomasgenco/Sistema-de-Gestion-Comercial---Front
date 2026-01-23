@@ -28,10 +28,10 @@ export default function LoginSidePanel() {
         >
             <Box sx={{ position: 'relative', zIndex: 2, p: 6, width: '100%', textAlign: 'center' }}>
                 <Typography variant="h2" component="h1" fontWeight="bold" sx={{ color: 'white', mb: 1 }}>
-                    La plataforma profesional para administrar su negocio.
+                    La plataforma profesional para administrar su negocio
                 </Typography>
-                <Typography variant="h5" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 300 }}>
-                    Datos, control y eficiencia en un solo sistema.
+                <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
+                    Stock, ventas y finanzas en un solo lugar
                 </Typography>
             </Box>
         </Box>

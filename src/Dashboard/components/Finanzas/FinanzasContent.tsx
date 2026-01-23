@@ -301,13 +301,29 @@ const FinanzasContent = () => {
 
         } catch (error: any) {
             // Construir mensaje de error personalizado
-            let errorMsg = error.response?.data?.message || 'Error al cerrar el mes. Por favor, intente nuevamente.';
+            let errorMsg = 'Error al cerrar el mes. Por favor, intente nuevamente.';
 
-            // Si el error indica que ya existe un cierre para ese mes
-            if (error.response?.status === 400 || errorMsg.toLowerCase().includes('ya existe') || errorMsg.toLowerCase().includes('duplicado')) {
-                errorMsg = `Ya existe un cierre registrado para ${getMonthName(cierreMesData.mes)} ${cierreMesData.anio}. ${errorMsg}`;
+            // Verificar si hay datos de respuesta del servidor
+            if (error.response?.data) {
+                const responseData = error.response.data;
+
+                // Si el error es específicamente CIERRE_MES_DUPLICADO (status 409 o code field)
+                if (responseData.code === 'CIERRE_MES_DUPLICADO' || error.response.status === 409) {
+                    console.log('Error de cierre duplicado detectado');
+                    console.log('cierreMesData:', cierreMesData);
+                    console.log('responseData:', responseData);
+                    // Construir mensaje personalizado con el mes y año
+                    if (cierreMesData) {
+                        errorMsg = `Ya existe un cierre registrado para ${getMonthName(cierreMesData.mes)} ${cierreMesData.anio}`;
+                        console.log('Mensaje construido con cierreMesData:', errorMsg);
+                    }
+                } else if (responseData.message) {
+                    // Para cualquier otro error, usar el mensaje del servidor si existe
+                    errorMsg = responseData.message;
+                }
             }
 
+            console.log('Mensaje de error que se va a mostrar:', errorMsg);
             setMesErrorMessage(errorMsg);
 
             // Cerrar el modal principal y abrir el modal de resultado con el error
