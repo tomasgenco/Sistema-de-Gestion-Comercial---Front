@@ -348,7 +348,7 @@ const ProveedoresContent = () => {
 
             {/* Provider Cards */}
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a', mb: 3 }}>
-                Proveedores ({providers.length})
+                Proveedores
             </Typography>
 
             {error && (
@@ -428,7 +428,7 @@ const ProveedoresContent = () => {
 
             {/* Purchase History */}
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a', mb: 3, mt: 5 }}>
-                Historial de Compras ({purchases.length})
+                Historial de Compras
             </Typography>
 
             {/* Filtros de compras */}
