@@ -26,12 +26,12 @@ interface ProveedorResponse {
 // Tipo para la respuesta paginada del backend
 interface PaginatedResponse {
     content: ProveedorResponse[];
-    totalElements: number;
-    totalPages: number;
-    size: number;
-    number: number;
-    first: boolean;
-    last: boolean;
+    page: {
+        totalElements: number;
+        totalPages: number;
+        size: number;
+        number: number;
+    };
 }
 
 export interface Provider {
@@ -149,8 +149,8 @@ const ProveedoresContent = () => {
                 }));
 
                 setProviders(mappedProviders);
-                setTotalPages(response.data.totalPages);
-                setTotalElements(response.data.totalElements);
+                setTotalPages(response.data.page.totalPages);
+                setTotalElements(response.data.page.totalElements);
             } catch (err: any) {
                 setError(err.response?.data?.message || 'Error al cargar los proveedores');
                 setProviders([]);
@@ -238,8 +238,8 @@ const ProveedoresContent = () => {
                 });
 
                 setPurchases(mappedPurchases);
-                setPurchaseTotalPages(response.data.totalPages);
-                setPurchaseTotalElements(response.data.totalElements);
+                setPurchaseTotalPages(response.data.page.totalPages);
+                setPurchaseTotalElements(response.data.page.totalElements);
             } catch (err: any) {
                 setPurchases([]);
             } finally {
@@ -352,7 +352,7 @@ const ProveedoresContent = () => {
 
             {/* Provider Cards */}
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a', mb: 3 }}>
-                Proveedores ({totalElements})
+                Proveedores ({providers.length})
             </Typography>
 
             {error && (
@@ -432,7 +432,7 @@ const ProveedoresContent = () => {
 
             {/* Purchase History */}
             <Typography variant="h5" fontWeight="bold" sx={{ color: '#0f172a', mb: 3, mt: 5 }}>
-                Historial de Compras ({purchaseTotalElements})
+                Historial de Compras ({purchases.length})
             </Typography>
 
             {/* Filtros de compras */}
