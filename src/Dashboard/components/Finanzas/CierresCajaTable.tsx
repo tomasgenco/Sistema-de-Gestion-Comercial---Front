@@ -234,8 +234,8 @@ const CierresCajaTable = () => {
                                         <TableRow>
                                             <TableCell sx={{ fontWeight: 700, color: '#0f172a' }}>Fecha</TableCell>
                                             <TableCell align="right" sx={{ fontWeight: 700, color: '#0f172a' }}>Total Ventas</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#0f172a' }}>Efectivo Esperado</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#0f172a' }}>Efectivo Real</TableCell>
+                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#0f172a' }}>Efectivo en Sistema</TableCell>
+                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#0f172a' }}>Efectivo en Caja</TableCell>
                                             <TableCell align="center" sx={{ fontWeight: 700, color: '#0f172a' }}>Diferencia</TableCell>
                                             <TableCell align="center" sx={{ fontWeight: 700, color: '#0f172a' }}>Detalles</TableCell>
                                         </TableRow>

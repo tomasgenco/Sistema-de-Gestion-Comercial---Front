@@ -89,7 +89,7 @@ const FinanzasContent = () => {
     const [cierreCajaData, setCierreCajaData] = useState<CierreCajaData | null>(null);
 
     // Inputs del usuario
-    const [efectivoReal, setEfectivoReal] = useState('');
+    const [efectivoIngresado, setEfectivoIngresado] = useState('');
     const [observaciones, setObservaciones] = useState('');
 
     // Diferencia calculada
@@ -118,7 +118,7 @@ const FinanzasContent = () => {
         setOpenCerrarCajaModal(true);
         setSuccessMessage('');
         setErrorMessage('');
-        setEfectivoReal('');
+        setEfectivoIngresado('');
         setObservaciones('');
         setDiferencia(0);
 
@@ -139,23 +139,23 @@ const FinanzasContent = () => {
         setSuccessMessage('');
         setErrorMessage('');
         setCierreCajaData(null);
-        setEfectivoReal('');
+        setEfectivoIngresado('');
         setObservaciones('');
         setDiferencia(0);
     };
 
-    // Calcular diferencia cuando cambia el efectivo real
+    // Calcular diferencia cuando cambia el efectivo ingresado
     useEffect(() => {
-        if (cierreCajaData && efectivoReal) {
-            const efectivoRealNum = parseFloat(efectivoReal);
-            if (!isNaN(efectivoRealNum)) {
-                const diff = efectivoRealNum - cierreCajaData.totalEfectivo;
+        if (cierreCajaData && efectivoIngresado) {
+            const efectivoIngresadoNum = parseFloat(efectivoIngresado);
+            if (!isNaN(efectivoIngresadoNum)) {
+                const diff = efectivoIngresadoNum - cierreCajaData.totalEfectivo;
                 setDiferencia(diff);
             }
         } else {
             setDiferencia(0);
         }
-    }, [efectivoReal, cierreCajaData]);
+    }, [efectivoIngresado, cierreCajaData]);
 
     // Cargar estadísticas desde el backend
     useEffect(() => {
@@ -205,14 +205,14 @@ const FinanzasContent = () => {
 
         try {
             // Validar que se haya ingresado el efectivo real
-            if (!efectivoReal || efectivoReal.trim() === '') {
+            if (!efectivoIngresado || efectivoIngresado.trim() === '') {
                 setErrorMessage('Debe ingresar el efectivo real en caja.');
                 setLoading(false);
                 return;
             }
 
-            const efectivoRealNum = parseFloat(efectivoReal);
-            if (isNaN(efectivoRealNum) || efectivoRealNum < 0) {
+            const efectivoIngresadoNum = parseFloat(efectivoIngresado);
+            if (isNaN(efectivoIngresadoNum) || efectivoIngresadoNum < 0) {
                 setErrorMessage('El efectivo real debe ser un número válido mayor o igual a 0.');
                 setLoading(false);
                 return;
@@ -220,7 +220,7 @@ const FinanzasContent = () => {
 
             // Enviar datos del cierre de caja
             await http.post('/cierre-caja', {
-                efectivoReal: efectivoRealNum,
+                efectivoReal: efectivoIngresadoNum,
                 diferencia: diferencia,
                 observaciones: observaciones.trim() || null
             });
@@ -611,8 +611,8 @@ const FinanzasContent = () => {
                                 fullWidth
                                 label="Efectivo Real"
                                 type="number"
-                                value={efectivoReal}
-                                onChange={(e) => setEfectivoReal(e.target.value)}
+                                value={efectivoIngresado}
+                                onChange={(e) => setEfectivoIngresado(e.target.value)}
                                 placeholder="Ingrese el efectivo real en caja"
                                 disabled={loading || !!successMessage}
                                 sx={{ mb: 2 }}
@@ -622,7 +622,7 @@ const FinanzasContent = () => {
                             />
 
                             {/* Mostrar diferencia */}
-                            {efectivoReal && !isNaN(parseFloat(efectivoReal)) && (
+                            {efectivoIngresado && !isNaN(parseFloat(efectivoIngresado)) && (
                                 <Box
                                     sx={{
                                         p: 2,
@@ -696,7 +696,7 @@ const FinanzasContent = () => {
                     <Button
                         onClick={handleCerrarCaja}
                         variant="contained"
-                        disabled={loading || !!successMessage || !efectivoReal || loadingData}
+                        disabled={loading || !!successMessage || !efectivoIngresado || loadingData}
                         sx={{
                             borderRadius: 2,
                             textTransform: 'none',
@@ -716,10 +716,10 @@ const FinanzasContent = () => {
             </Dialog>
 
             {/* Modal de Resultado del Cierre */}
-            <Dialog open={openResultModal} onClose={() => { setOpenResultModal(false); setSuccessMessage(''); setErrorMessage(''); setResultData(null); setEfectivoReal(''); setObservaciones(''); setDiferencia(0); }} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4, p: 2 } }}>
+            <Dialog open={openResultModal} onClose={() => { setOpenResultModal(false); setSuccessMessage(''); setErrorMessage(''); setResultData(null); setEfectivoIngresado(''); setObservaciones(''); setDiferencia(0); }} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4, p: 2 } }}>
                 <DialogTitle sx={{ fontWeight: 'bold', color: '#0f172a', pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     Cierre de Caja Confirmado
-                    <IconButton onClick={() => { setOpenResultModal(false); setSuccessMessage(''); setErrorMessage(''); setResultData(null); setEfectivoReal(''); setObservaciones(''); setDiferencia(0); }} sx={{ color: '#64748b', '&:hover': { bgcolor: '#f1f5f9' } }}>
+                    <IconButton onClick={() => { setOpenResultModal(false); setSuccessMessage(''); setErrorMessage(''); setResultData(null); setEfectivoIngresado(''); setObservaciones(''); setDiferencia(0); }} sx={{ color: '#64748b', '&:hover': { bgcolor: '#f1f5f9' } }}>
                         <MdClose size={24} />
                     </IconButton>
                 </DialogTitle>
@@ -742,13 +742,13 @@ const FinanzasContent = () => {
                             <Typography variant="body2">• Fecha: {formatLocalDate(resultData.fecha)}</Typography>
                             <Typography variant="body2">• Total ventas: ${resultData.totalVentas.toFixed(2)}</Typography>
                             <Typography variant="body2">• Efectivo esperado: ${resultData.totalEfectivo.toFixed(2)}</Typography>
-                            <Typography variant="body2">• Efectivo real: ${parseFloat(efectivoReal).toFixed(2)}</Typography>
+                            <Typography variant="body2">• Efectivo real: ${parseFloat(efectivoIngresado).toFixed(2)}</Typography>
                             <Typography variant="body2" sx={{ fontWeight: 600, color: diferencia === 0 ? '#065f46' : '#92400e', mt: 1 }}>• Diferencia: ${Math.abs(diferencia).toFixed(2)} {diferencia > 0 ? '(Sobrante)' : diferencia < 0 ? '(Faltante)' : '(Sin diferencia)'}</Typography>
                         </Box>
                     )}
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={() => { setOpenResultModal(false); setSuccessMessage(''); setErrorMessage(''); setResultData(null); setEfectivoReal(''); setObservaciones(''); setDiferencia(0); }} variant="contained" sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}>Cerrar</Button>
+                    <Button onClick={() => { setOpenResultModal(false); setSuccessMessage(''); setErrorMessage(''); setResultData(null); setEfectivoIngresado(''); setObservaciones(''); setDiferencia(0); }} variant="contained" sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}>Cerrar</Button>
                 </DialogActions>
             </Dialog>
 

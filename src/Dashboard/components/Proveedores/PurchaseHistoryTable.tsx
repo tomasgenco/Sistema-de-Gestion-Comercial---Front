@@ -70,6 +70,40 @@ const PurchaseHistoryTable = ({ purchases }: PurchaseHistoryTableProps) => {
         });
     };
 
+    const getPaymentMethodLabel = (metodoPago: string) => {
+        switch (metodoPago) {
+            case 'EFECTIVO':
+                return 'Efectivo';
+            case 'MERCADO_PAGO':
+                return 'Mercado Pago';
+            case 'CUENTA_DNI':
+                return 'Cuenta DNI';
+            case 'TARJETA_CREDITO':
+                return 'Tarjeta Crédito';
+            case 'TARJETA_DEBITO':
+                return 'Tarjeta Débito';
+            default:
+                return metodoPago;
+        }
+    };
+
+    const getPaymentMethodColor = (metodoPago: string) => {
+        switch (metodoPago) {
+            case 'EFECTIVO':
+                return { bg: '#d1fae5', color: '#065f46' };
+            case 'MERCADO_PAGO':
+                return { bg: '#dbeafe', color: '#1e40af' };
+            case 'CUENTA_DNI':
+                return { bg: '#fef3c7', color: '#92400e' };
+            case 'TARJETA_CREDITO':
+                return { bg: '#fce7f3', color: '#9f1239' };
+            case 'TARJETA_DEBITO':
+                return { bg: '#e0e7ff', color: '#3730a3' };
+            default:
+                return { bg: '#f1f5f9', color: '#64748b' };
+        }
+    };
+
     if (purchases.length === 0) {
         return (
             <Box
@@ -106,6 +140,7 @@ const PurchaseHistoryTable = ({ purchases }: PurchaseHistoryTableProps) => {
                         <TableCell sx={{ fontWeight: 700 }}>Proveedor</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Fecha</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 700 }}>Total</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 700 }}>Método de Pago</TableCell>
                         <TableCell align="center" sx={{ fontWeight: 700 }}>Estado</TableCell>
                         <TableCell align="center" sx={{ fontWeight: 700 }}>Items</TableCell>
                         <TableCell align="center" sx={{ fontWeight: 700 }}>Detalles</TableCell>
@@ -150,6 +185,17 @@ const PurchaseHistoryTable = ({ purchases }: PurchaseHistoryTableProps) => {
                                     </TableCell>
                                     <TableCell align="center">
                                         <Chip
+                                            label={getPaymentMethodLabel(purchase.metodoPago)}
+                                            size="small"
+                                            sx={{
+                                                bgcolor: getPaymentMethodColor(purchase.metodoPago).bg,
+                                                color: getPaymentMethodColor(purchase.metodoPago).color,
+                                                fontWeight: 600
+                                            }}
+                                        />
+                                    </TableCell>
+                                    <TableCell align="center">
+                                        <Chip
                                             label={getStatusLabel(purchase.status)}
                                             size="small"
                                             sx={{
@@ -186,7 +232,7 @@ const PurchaseHistoryTable = ({ purchases }: PurchaseHistoryTableProps) => {
                                 {/* Expanded Row - Details */}
                                 <TableRow>
                                     <TableCell
-                                        colSpan={7}
+                                        colSpan={8}
                                         sx={{
                                             py: 0,
                                             borderBottom: isExpanded ? '1px solid #e2e8f0' : 'none'

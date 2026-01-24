@@ -55,6 +55,7 @@ export interface Purchase {
     total: number;
     items: PurchaseItem[];
     status: 'completed' | 'pending' | 'cancelled';
+    metodoPago: 'EFECTIVO' | 'MERCADO_PAGO' | 'CUENTA_DNI' | 'TARJETA_CREDITO' | 'TARJETA_DEBITO';
 }
 
 export interface PurchaseItem {
@@ -230,7 +231,8 @@ const ProveedoresContent = () => {
                         date: compra.fechaHora || new Date().toISOString(),
                         total: compra.total || mappedItems.reduce((sum: number, item: any) => sum + item.total, 0),
                         items: mappedItems,
-                        status: 'completed'
+                        status: 'completed',
+                        metodoPago: compra.metodoPago || 'EFECTIVO'
                     };
                 });
 
