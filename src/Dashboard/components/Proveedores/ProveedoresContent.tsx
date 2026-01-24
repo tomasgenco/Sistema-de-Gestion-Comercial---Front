@@ -86,7 +86,6 @@ const ProveedoresContent = () => {
     // Estados de paginación para proveedores
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
-    const [totalElements, setTotalElements] = useState(0);
 
     // Trigger para recargar datos
     const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -97,7 +96,6 @@ const ProveedoresContent = () => {
 
     const [purchaseCurrentPage, setPurchaseCurrentPage] = useState(1);
     const [purchaseTotalPages, setPurchaseTotalPages] = useState(0);
-    const [purchaseTotalElements, setPurchaseTotalElements] = useState(0);
     const [purchaseLoading, setPurchaseLoading] = useState(false);
 
     // Resetear a página 1 cuando cambian los filtros
@@ -150,7 +148,6 @@ const ProveedoresContent = () => {
 
                 setProviders(mappedProviders);
                 setTotalPages(response.data.page.totalPages);
-                setTotalElements(response.data.page.totalElements);
             } catch (err: any) {
                 setError(err.response?.data?.message || 'Error al cargar los proveedores');
                 setProviders([]);
@@ -239,7 +236,6 @@ const ProveedoresContent = () => {
 
                 setPurchases(mappedPurchases);
                 setPurchaseTotalPages(response.data.page.totalPages);
-                setPurchaseTotalElements(response.data.page.totalElements);
             } catch (err: any) {
                 setPurchases([]);
             } finally {
