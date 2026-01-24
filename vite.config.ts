@@ -6,13 +6,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    proxy: {
-      "/api": {
-        target: "http://localhost:4000",
-        changeOrigin: true,
-        secure: false,
-      },
-    },
   },
   build: {
     // Minificación automática (ofusca y comprime el código)

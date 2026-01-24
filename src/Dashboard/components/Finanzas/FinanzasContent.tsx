@@ -149,7 +149,7 @@ const FinanzasContent = () => {
         if (cierreCajaData && efectivoIngresado) {
             const efectivoIngresadoNum = parseFloat(efectivoIngresado);
             if (!isNaN(efectivoIngresadoNum)) {
-                const diff = efectivoIngresadoNum - cierreCajaData.totalEfectivo;
+                const diff = efectivoIngresadoNum - cierreCajaData.efectivoReal;
                 setDiferencia(diff);
             }
         } else {
@@ -564,7 +564,7 @@ const FinanzasContent = () => {
                                         Efectivo (Sistema)
                                     </Typography>
                                     <Typography variant="body1" fontWeight="600" color="#10b981">
-                                        ${cierreCajaData.totalEfectivo.toFixed(2)}
+                                        ${cierreCajaData.efectivoReal.toFixed(2)}
                                     </Typography>
                                 </Box>
                                 <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '200px', p: 2, bgcolor: '#f8fafc', borderRadius: 2 }}>
@@ -615,7 +615,18 @@ const FinanzasContent = () => {
                                 onChange={(e) => setEfectivoIngresado(e.target.value)}
                                 placeholder="Ingrese el efectivo real en caja"
                                 disabled={loading || !!successMessage}
-                                sx={{ mb: 2 }}
+                                sx={{
+                                    mb: 2,
+                                    // Ocultar flechas de incremento/decremento en Chrome, Safari, Edge
+                                    '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
+                                        WebkitAppearance: 'none',
+                                        margin: 0,
+                                    },
+                                    // Ocultar flechas de incremento/decremento en Firefox
+                                    '& input[type=number]': {
+                                        MozAppearance: 'textfield',
+                                    },
+                                }}
                                 InputProps={{
                                     startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
                                 }}
